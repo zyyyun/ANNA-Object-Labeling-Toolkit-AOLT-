@@ -1,0 +1,922 @@
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using AOLTv1.Models;
+
+namespace AOLTv1.Services
+{
+    /// <summary>
+    /// Handles loading and exporting labeling data in COCO-like JSON format.
+    /// JSON 라벨링 데이터 로드/내보내기 서비스.
+    /// </summary>
+    public class JsonService
+    {
+        #region Category ID Mapping
+
+        private static readonly Dictionary<string, int> CategoryNameToIdMap = new()
+        {
+            // Person categories (1~20)
+            {"person_01", 1}, {"person_02", 2}, {"person_03", 3}, {"person_04", 4},
+            {"person_05", 5}, {"person_06", 6}, {"person_07", 7}, {"person_08", 8},
+            {"person_09", 9}, {"person_10", 10}, {"person_11", 11}, {"person_12", 12},
+            {"person_13", 13}, {"person_14", 14}, {"person_15", 15}, {"person_16", 16},
+            {"person_17", 17}, {"person_18", 18}, {"person_19", 19}, {"person_20", 20},
+
+            // Vehicle categories (21~24)
+            {"car", 21}, {"motorcycle", 22}, {"e_scooter", 23}, {"bicycle", 24},
+
+            // Event categories (25~28)
+            {"contact", 25}, {"exchange", 26}, {"board", 27}, {"final_exchange", 28}
+        };
+
+        private static readonly Color[] MarkerColors = new Color[]
+        {
+            Color.FromArgb(59, 130, 246),
+            Color.FromArgb(16, 185, 129),
+            Color.FromArgb(139, 92, 246),
+            Color.FromArgb(245, 158, 11),
+            Color.FromArgb(236, 72, 153),
+        };
+
+        /// <summary>All known person attribute names for export.</summary>
+        private static readonly HashSet<string> AllAttributeNames = new()
+        {
+            "Occlusion", "BodyView",
+            "Age", "Gender", "Height", "Weight/BodyShape", "Face",
+            "HairLength", "HairStyle", "HairColor",
+            "UpperClothType", "UpperClothSleeve", "UpperClothPattern", "UpperClothColor",
+            "LowerClothType", "LowerClothLegwear", "LowerClothLength", "LowerClothPattern", "LowerClothColor", "LowerClothMaterial",
+            "FootwearType", "FootwearColor",
+            "HeadwearType", "FacewearType", "BagType", "CarringItemType",
+            "ActionType"
+        };
+
+        #endregion
+
+        #region Helper Methods
+
+        public static int GetBoxId(BoundingBox box)
+        {
+            if (box.Label == "person") return box.PersonId;
+            if (box.Label == "vehicle") return box.VehicleId;
+            if (box.Label == "event") return box.EventId;
+            return 0;
+        }
+
+        private static int GetCategoryId(string label, int boxId)
+        {
+            string categoryName = GetCategoryName(label, boxId);
+
+            if (CategoryNameToIdMap.ContainsKey(categoryName))
+                return CategoryNameToIdMap[categoryName];
+
+            if (label == "person") return Math.Min(boxId, 20);
+            if (label == "vehicle") return Math.Min(21 + (boxId - 1), 24);
+            if (label == "event") return Math.Min(25 + (boxId - 1), 28);
+
+            return boxId;
+        }
+
+        private static string GetCategoryName(string label, int boxId)
+        {
+            if (label == "person")
+            {
+                return $"person_{boxId:D2}";
+            }
+            else if (label == "vehicle")
+            {
+                return boxId switch
+                {
+                    1 => "car",
+                    2 => "motorcycle",
+                    3 => "e_scooter",
+                    4 => "bicycle",
+                    _ => "car"
+                };
+            }
+            else if (label == "event")
+            {
+                return boxId switch
+                {
+                    1 => "contact",
+                    2 => "exchange",
+                    3 => "board",
+                    4 => "final_exchange",
+                    _ => "contact"
+                };
+            }
+
+            return $"{label}_{boxId:D2}";
+        }
+
+        /// <summary>
+        /// Compares two attribute values for equality, supporting arrays (List&lt;string&gt;).
+        /// </summary>
+        public static bool AreAttributeValuesEqualForExport(object? current, object? previous)
+        {
+            if (current == null && previous == null) return true;
+            if (current == null || previous == null) return false;
+
+            List<string> currentList;
+            List<string> previousList;
+
+            if (current is List<string> cl) currentList = cl;
+            else if (current is string[] ca) currentList = ca.ToList();
+            else if (current is string cs) currentList = new List<string> { cs };
+            else currentList = new List<string> { current.ToString()! };
+
+            if (previous is List<string> pl) previousList = pl;
+            else if (previous is string[] pa) previousList = pa.ToList();
+            else if (previous is string ps) previousList = new List<string> { ps };
+            else previousList = new List<string> { previous.ToString()! };
+
+            return currentList.OrderBy(x => x).SequenceEqual(previousList.OrderBy(x => x));
+        }
+
+        #endregion
+
+        #region Resolve JSON Path
+
+        /// <summary>
+        /// Resolves the _labels.json file path for a given video file.
+        /// Returns null if no JSON file exists.
+        /// </summary>
+        public string? ResolveJsonPath(string videoFilePath)
+        {
+            string? videoDir = Path.GetDirectoryName(videoFilePath);
+            if (string.IsNullOrEmpty(videoDir) || !Directory.Exists(videoDir))
+                return null;
+
+            string saveDir = Path.Combine(videoDir, "labels");
+            if (!Directory.Exists(saveDir))
+                return null;
+
+            string baseFileName = Path.GetFileNameWithoutExtension(videoFilePath);
+            string normalPath = Path.Combine(saveDir, baseFileName + "_labels.json");
+
+            if (File.Exists(normalPath))
+                return normalPath;
+
+            return null;
+        }
+
+        #endregion
+
+        #region Load JSON
+
+        /// <summary>
+        /// Result of loading labeling data from a JSON file.
+        /// </summary>
+        public class LoadResult
+        {
+            public bool Success { get; set; }
+            public string? ErrorMessage { get; set; }
+            public string? LoadedFilePath { get; set; }
+            public List<BoundingBox> BoundingBoxes { get; set; } = new();
+            public List<WaypointMarker> WaypointMarkers { get; set; } = new();
+            public Dictionary<int, CategoryData> CategoryMap { get; set; } = new();
+            public Dictionary<int, string> FrameTimestampMap { get; set; } = new();
+            public Dictionary<string, List<(int start, int end)>> WaypointFailureRanges { get; set; } = new();
+            public int NextAnnotationId { get; set; } = 1;
+            public Dictionary<int, List<(int waypointEntryFrame, int applyFromFrame, string attributeName, object value)>> AttributesByPerson { get; set; } = new();
+        }
+
+        /// <summary>
+        /// Loads labeling data from the _labels.json file associated with a video.
+        /// </summary>
+        /// <param name="videoFilePath">Path to the video file.</param>
+        /// <param name="fps">Video FPS (for formatting waypoint times).</param>
+        /// <param name="progressCallback">Optional callback for progress updates (message).</param>
+        public async Task<LoadResult> LoadLabelingDataAsync(
+            string videoFilePath,
+            double fps,
+            Action<string>? progressCallback = null)
+        {
+            var result = new LoadResult();
+
+            try
+            {
+                string? videoDir = Path.GetDirectoryName(videoFilePath);
+                if (string.IsNullOrEmpty(videoDir) || !Directory.Exists(videoDir))
+                {
+                    result.LoadedFilePath = "";
+                    return result;
+                }
+
+                string saveDir = Path.Combine(videoDir, "labels");
+                if (!Directory.Exists(saveDir))
+                {
+                    result.LoadedFilePath = "";
+                    return result;
+                }
+
+                string baseFileName = Path.GetFileNameWithoutExtension(videoFilePath);
+                string normalPath = Path.Combine(saveDir, baseFileName + "_labels.json");
+
+                if (!File.Exists(normalPath))
+                {
+                    result.LoadedFilePath = "";
+                    return result;
+                }
+
+                string loadPath = normalPath;
+                result.LoadedFilePath = loadPath;
+
+                // File size check
+                FileInfo fileInfo = new FileInfo(loadPath);
+                long fileSizeMB = fileInfo.Length / (1024 * 1024);
+
+                // Create backup
+                string backupPath = loadPath + ".backup";
+                try
+                {
+                    if (File.Exists(backupPath))
+                        File.Delete(backupPath);
+                    File.Copy(loadPath, backupPath);
+                }
+                catch (Exception backupEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[JSON 로드] 백업 파일 생성 실패: {backupEx.Message}");
+                }
+
+                // Read and parse JSON
+                progressCallback?.Invoke("JSON 파일 읽는 중...");
+
+                LabelingDataExtended? labelingData = null;
+
+                await Task.Run(() =>
+                {
+                    using var fileStream = new FileStream(loadPath, FileMode.Open, FileAccess.Read, FileShare.Read, 8192);
+                    using var streamReader = new StreamReader(fileStream, System.Text.Encoding.UTF8, true, 8192);
+
+                    string json = streamReader.ReadToEnd();
+
+                    progressCallback?.Invoke("JSON 파싱 중...");
+
+                    var settings = new JsonSerializerSettings
+                    {
+                        TypeNameHandling = TypeNameHandling.None
+                    };
+                    labelingData = JsonConvert.DeserializeObject<LabelingDataExtended>(json, settings);
+                });
+
+                if (labelingData?.Annotations == null)
+                    return result;
+
+                // Failure ranges
+                if (labelingData.FailureRanges != null)
+                {
+                    result.WaypointFailureRanges = labelingData.FailureRanges;
+                }
+
+                // ImageId -> FrameNumber mapping
+                var imageIdToFrameNumber = new Dictionary<int, int>();
+                if (labelingData.Images != null)
+                {
+                    foreach (var image in labelingData.Images)
+                    {
+                        imageIdToFrameNumber[image.Id] = image.FrameNumber;
+                        if (!string.IsNullOrEmpty(image.Timestamp))
+                        {
+                            result.FrameTimestampMap[image.FrameNumber] = image.Timestamp;
+                        }
+                    }
+                }
+
+                // Attribute schema from categories
+                Dictionary<string, object>? attributeSchema = null;
+                if (labelingData.Categories != null)
+                {
+                    foreach (var category in labelingData.Categories)
+                    {
+                        result.CategoryMap[category.Id] = category;
+                        if (category.Supercategory == "person" && category.Attributes != null)
+                        {
+                            attributeSchema = category.Attributes;
+                        }
+                    }
+                }
+
+                // Process annotations
+                progressCallback?.Invoke("데이터 처리 중...");
+
+                var waypointKeySet = new Dictionary<string, WaypointMarker>();
+
+                foreach (var annotation in labelingData.Annotations)
+                {
+                    if (annotation.Bbox == null || annotation.Bbox.Length < 4)
+                        continue;
+
+                    int trackId = annotation.TrackId;
+                    string label = "person";
+
+                    int catId = annotation.CategoryId;
+                    if (catId >= 1 && catId <= 20)
+                        label = "person";
+                    else if (catId >= 21 && catId <= 24)
+                        label = "vehicle";
+                    else if (catId >= 25 && catId <= 28)
+                        label = "event";
+                    else if (result.CategoryMap.ContainsKey(catId))
+                    {
+                        string categoryName = result.CategoryMap[catId].Name;
+                        if (categoryName.Contains("car") || categoryName.Contains("motorcycle") ||
+                            categoryName.Contains("scooter") || categoryName.Contains("bicycle"))
+                            label = "vehicle";
+                        else if (categoryName.Contains("contact") || categoryName.Contains("exchange") ||
+                                 categoryName.Contains("board") || categoryName.Contains("final"))
+                            label = "event";
+                        else if (categoryName.StartsWith("person"))
+                            label = "person";
+                    }
+
+                    int actualFrameNumber = annotation.ImageId;
+                    if (imageIdToFrameNumber.ContainsKey(annotation.ImageId))
+                        actualFrameNumber = imageIdToFrameNumber[annotation.ImageId];
+
+                    int personId = 0, vehicleId = 0, eventId = 0;
+
+                    if (label == "person")
+                        personId = trackId;
+                    else if (label == "vehicle")
+                        vehicleId = catId >= 21 && catId <= 24 ? (catId - 20) : trackId;
+                    else if (label == "event")
+                        eventId = catId >= 25 && catId <= 28 ? (catId - 24) : trackId;
+
+                    var box = new BoundingBox
+                    {
+                        FrameIndex = actualFrameNumber,
+                        Rectangle = new Rectangle(annotation.Bbox[0], annotation.Bbox[1], annotation.Bbox[2], annotation.Bbox[3]),
+                        Label = label,
+                        PersonId = personId,
+                        VehicleId = vehicleId,
+                        EventId = eventId,
+                        Action = "waypoint"
+                    };
+
+                    result.BoundingBoxes.Add(box);
+
+                    if (annotation.Id >= result.NextAnnotationId)
+                        result.NextAnnotationId = annotation.Id + 1;
+
+                    // Restore waypoints
+                    if (annotation.TrackInfo?.Entry != null && annotation.TrackInfo?.Exit != null)
+                    {
+                        int entryFrame = annotation.TrackInfo.Entry.Frame;
+                        int exitFrame = annotation.TrackInfo.Exit.Frame;
+
+                        int objectId = 0;
+                        if (box.Label == "person") objectId = box.PersonId;
+                        else if (box.Label == "vehicle") objectId = box.VehicleId;
+                        else if (box.Label == "event") objectId = box.EventId;
+
+                        string waypointKey = $"{box.Label}_{objectId}_{entryFrame}_{exitFrame}";
+
+                        Color waypointColor;
+                        if (box.Label == "person")
+                            waypointColor = Color.FromArgb(255, 107, 107);
+                        else if (box.Label == "vehicle")
+                            waypointColor = Color.FromArgb(107, 158, 255);
+                        else if (box.Label == "event")
+                            waypointColor = Color.FromArgb(107, 255, 107);
+                        else
+                            waypointColor = Color.Black;
+
+                        var waypoint = new WaypointMarker
+                        {
+                            ObjectId = objectId,
+                            Label = box.Label,
+                            EntryFrame = entryFrame,
+                            ExitFrame = exitFrame,
+                            EntryTime = FormatFrameTime(entryFrame, fps),
+                            ExitTime = FormatFrameTime(exitFrame, fps),
+                            MarkerColor = waypointColor,
+                            InteractingObject = (box.Label == "event") ? (annotation.InteractingObject ?? "") : null
+                        };
+
+                        if (!waypointKeySet.ContainsKey(waypointKey))
+                        {
+                            waypointKeySet[waypointKey] = waypoint;
+                            result.WaypointMarkers.Add(waypoint);
+                        }
+                        else
+                        {
+                            if (box.Label == "event" && !string.IsNullOrWhiteSpace(annotation.InteractingObject))
+                            {
+                                var existing = waypointKeySet[waypointKey];
+                                if (string.IsNullOrWhiteSpace(existing.InteractingObject))
+                                    existing.InteractingObject = annotation.InteractingObject;
+                            }
+                        }
+                    }
+                }
+
+                // Fix uncolored waypoints
+                int waypointIndex = 0;
+                foreach (var waypoint in result.WaypointMarkers)
+                {
+                    if (waypoint.MarkerColor == Color.Black)
+                    {
+                        waypoint.MarkerColor = MarkerColors[waypointIndex % MarkerColors.Length];
+                    }
+                    waypointIndex++;
+                }
+
+                // Process person attributes
+                progressCallback?.Invoke("속성 복원 중...");
+
+                var waypointMap = new Dictionary<(string label, int objectId, int frameNumber), int>();
+                foreach (var waypoint in result.WaypointMarkers)
+                {
+                    for (int frame = waypoint.EntryFrame; frame <= waypoint.ExitFrame; frame++)
+                    {
+                        waypointMap[(waypoint.Label, waypoint.ObjectId, frame)] = waypoint.EntryFrame;
+                    }
+                }
+
+                foreach (var annotation in labelingData.Annotations)
+                {
+                    if (annotation.Bbox == null || annotation.Bbox.Length < 4)
+                        continue;
+
+                    int catIdAttr = annotation.CategoryId;
+                    if (catIdAttr < 1 || catIdAttr > 20) continue; // person only
+
+                    int personId = annotation.TrackId;
+
+                    int frameNumber = annotation.ImageId;
+                    if (imageIdToFrameNumber.ContainsKey(annotation.ImageId))
+                        frameNumber = imageIdToFrameNumber[annotation.ImageId];
+
+                    int waypointEntryFrame = frameNumber;
+                    if (waypointMap.TryGetValue(("person", personId, frameNumber), out int entryFrame))
+                        waypointEntryFrame = entryFrame;
+
+                    Dictionary<string, object>? attributesToProcess = null;
+
+                    if (annotation.PersonAttributes != null && annotation.PersonAttributes.Count > 0)
+                        attributesToProcess = annotation.PersonAttributes;
+                    else if (annotation.Attributes != null && annotation.Attributes.Count > 0)
+                        attributesToProcess = annotation.Attributes;
+
+                    if (attributesToProcess == null || attributesToProcess.Count == 0)
+                        continue;
+
+                    if (!result.AttributesByPerson.ContainsKey(personId))
+                        result.AttributesByPerson[personId] = new();
+
+                    foreach (var kvp in attributesToProcess)
+                    {
+                        string attrName = kvp.Key;
+                        object? attrValue = kvp.Value;
+
+                        if (attrValue == null) continue;
+
+                        object processedValue = attrValue;
+
+                        // Convert arrays for non-waypoint-scoped attributes
+                        if (attrName != "Occlusion" && attrName != "BodyView" && attrName != "ActionType")
+                        {
+                            if (attrValue is JArray jArray)
+                                processedValue = jArray.ToObject<List<string>>()!;
+                            else if (attrValue is List<object> objectList)
+                                processedValue = objectList.Select(x => x?.ToString()).Where(x => x != null).ToList()!;
+                            else if (attrValue is object[] objectArray)
+                                processedValue = objectArray.Select(x => x?.ToString()).Where(x => x != null).ToList()!;
+                        }
+
+                        result.AttributesByPerson[personId].Add((waypointEntryFrame, frameNumber, attrName, processedValue));
+                    }
+                }
+
+                result.Success = true;
+            }
+            catch (OutOfMemoryException oomEx)
+            {
+                result.Success = false;
+                result.ErrorMessage = $"메모리 부족으로 파일을 로드할 수 없습니다.\n{oomEx.Message}";
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.ErrorMessage = $"라벨링 데이터 로드 오류: {ex.Message}";
+                if (ex.InnerException != null)
+                    result.ErrorMessage += $"\n\n상세 정보: {ex.InnerException.Message}";
+            }
+
+            return result;
+        }
+
+        #endregion
+
+        #region Export JSON
+
+        /// <summary>
+        /// Exports annotation data to a COCO-format JSON file.
+        /// </summary>
+        /// <param name="filePath">Output file path.</param>
+        /// <param name="currentVideoFile">Current video file name (for info section).</param>
+        /// <param name="fps">Video FPS.</param>
+        /// <param name="frameWidth">Video frame width.</param>
+        /// <param name="frameHeight">Video frame height.</param>
+        /// <param name="boundingBoxes">All bounding boxes.</param>
+        /// <param name="waypointMarkers">All waypoint markers.</param>
+        /// <param name="waypointFailureRanges">Failure ranges per waypoint key.</param>
+        /// <param name="personAttributeStore">Person attribute store.</param>
+        /// <param name="videoService">Video service for subtitle timestamps.</param>
+        public void ExportToJsonExtended(
+            string filePath,
+            string currentVideoFile,
+            double fps,
+            int frameWidth,
+            int frameHeight,
+            List<BoundingBox> boundingBoxes,
+            List<WaypointMarker> waypointMarkers,
+            Dictionary<string, List<(int start, int end)>>? waypointFailureRanges,
+            PersonAttributeStore personAttributeStore,
+            VideoService? videoService = null)
+        {
+            try
+            {
+                var images = new List<ImageInfo>();
+                var annotations = new List<AnnotationData>();
+                var categories = new Dictionary<int, CategoryData>();
+
+                var frameGroups = boundingBoxes.Where(b => !b.IsDeleted).GroupBy(b => b.FrameIndex).OrderBy(g => g.Key);
+                int imageId = 0;
+                int nextAnnotationId = 1;
+                bool personCategoryAttributesSet = false;
+
+                var previousAttributesByPerson = new Dictionary<int, Dictionary<string, object>>();
+
+                // Collect initial attributes per person
+                var initialAttributesByPerson = new Dictionary<int, Dictionary<string, object>>();
+                var personIds = boundingBoxes
+                    .Where(b => b.Label == "person" && !b.IsDeleted)
+                    .Select(b => b.PersonId)
+                    .Distinct()
+                    .ToList();
+
+                foreach (var personId in personIds)
+                {
+                    var firstWaypoint = waypointMarkers
+                        .Where(w => w.Label == "person" && w.ObjectId == personId)
+                        .OrderBy(w => w.EntryFrame)
+                        .FirstOrDefault();
+
+                    if (firstWaypoint != null)
+                    {
+                        var attributes = personAttributeStore.GetAllAttributes(
+                            personId, firstWaypoint.EntryFrame, waypointMarkers, currentVideoFile);
+                        if (attributes != null && attributes.Count > 0)
+                        {
+                            initialAttributesByPerson[personId] = attributes;
+                        }
+                    }
+                }
+
+                foreach (var frameGroup in frameGroups)
+                {
+                    double frameSeconds = frameGroup.Key / fps;
+                    DateTime frameTime = DateTime.Now.AddSeconds(frameSeconds);
+
+                    string? subtitleTimestamp = videoService?.GetSubtitleTimestampForFrame(frameGroup.Key);
+                    string timestamp = subtitleTimestamp ?? frameTime.ToString("yyyy-MM-ddTHH:mm:ss.fff");
+
+                    var imageInfo = new ImageInfo
+                    {
+                        Id = imageId,
+                        Height = frameHeight,
+                        Width = frameWidth,
+                        FrameNumber = frameGroup.Key,
+                        Timestamp = timestamp
+                    };
+
+                    images.Add(imageInfo);
+
+                    foreach (var box in frameGroup)
+                    {
+                        int boxId = GetBoxId(box);
+                        int categoryId = GetCategoryId(box.Label, boxId);
+                        string categoryName = GetCategoryName(box.Label, boxId);
+
+                        if (!categories.ContainsKey(categoryId))
+                        {
+                            categories[categoryId] = new CategoryData
+                            {
+                                Id = categoryId,
+                                Name = categoryName,
+                                Supercategory = box.Label
+                            };
+
+                            if (box.Label == "person" && !personCategoryAttributesSet)
+                            {
+                                categories[categoryId].Attributes = new Dictionary<string, object>();
+
+                                foreach (string attrName in AllAttributeNames)
+                                {
+                                    object? mergedValue = null;
+
+                                    var valuesForAttribute = new List<object>();
+                                    foreach (var personAttrs in initialAttributesByPerson.Values)
+                                    {
+                                        if (personAttrs.ContainsKey(attrName) && personAttrs[attrName] != null)
+                                            valuesForAttribute.Add(personAttrs[attrName]);
+                                    }
+
+                                    if (valuesForAttribute.Count > 0)
+                                    {
+                                        bool allSame = true;
+                                        object firstValue = valuesForAttribute[0];
+                                        foreach (var value in valuesForAttribute)
+                                        {
+                                            if (!AreAttributeValuesEqualForExport(firstValue, value))
+                                            {
+                                                allSame = false;
+                                                break;
+                                            }
+                                        }
+
+                                        if (allSame)
+                                        {
+                                            mergedValue = FormatAttributeValue(attrName, firstValue);
+                                        }
+                                    }
+
+                                    categories[categoryId].Attributes[attrName] = mergedValue!;
+                                }
+
+                                personCategoryAttributesSet = true;
+                            }
+                        }
+
+                        // Find matching waypoint
+                        var matchingWaypoint = waypointMarkers.FirstOrDefault(w =>
+                            w.Label == box.Label &&
+                            w.ObjectId == boxId &&
+                            box.FrameIndex >= w.EntryFrame &&
+                            box.FrameIndex <= w.ExitFrame);
+
+                        int entryFrame = box.FrameIndex;
+                        int exitFrame = box.FrameIndex;
+
+                        if (matchingWaypoint != null)
+                        {
+                            entryFrame = matchingWaypoint.EntryFrame;
+                            exitFrame = matchingWaypoint.ExitFrame;
+                        }
+                        else
+                        {
+                            var sameObjectBoxes = boundingBoxes
+                                .Where(b => b.Label == box.Label && GetBoxId(b) == boxId)
+                                .ToList();
+
+                            if (sameObjectBoxes.Any())
+                            {
+                                entryFrame = sameObjectBoxes.Min(b => b.FrameIndex);
+                                exitFrame = sameObjectBoxes.Max(b => b.FrameIndex);
+                            }
+                        }
+
+                        string? entryTimestamp = videoService?.GetSubtitleTimestampForFrame(entryFrame);
+                        string? exitTimestamp = videoService?.GetSubtitleTimestampForFrame(exitFrame);
+
+                        double entrySeconds = entryFrame / fps;
+                        double exitSeconds = exitFrame / fps;
+                        DateTime entryTime = DateTime.Now.AddSeconds(entrySeconds);
+                        DateTime exitTime = DateTime.Now.AddSeconds(exitSeconds);
+
+                        var annotation = new AnnotationData
+                        {
+                            Id = nextAnnotationId++,
+                            ImageId = imageId,
+                            CategoryId = categoryId,
+                            Bbox = new int[] { box.Rectangle.X, box.Rectangle.Y, box.Rectangle.Width, box.Rectangle.Height },
+                            Area = box.Rectangle.Width * box.Rectangle.Height,
+                            Iscrowd = 0,
+                            TrackId = boxId,
+                            TrackInfo = new TrackInfo
+                            {
+                                Entry = new TrackEntry
+                                {
+                                    Frame = entryFrame,
+                                    Timestamp = entryTimestamp ?? entryTime.ToString("yyyy-MM-ddTHH:mm:ss.fff")
+                                },
+                                Exit = new TrackEntry
+                                {
+                                    Frame = exitFrame,
+                                    Timestamp = exitTimestamp ?? exitTime.ToString("yyyy-MM-ddTHH:mm:ss.fff")
+                                },
+                                CurrentClipCount = 1
+                            }
+                        };
+
+                        // Event interacting object
+                        if (box.Label == "event" && matchingWaypoint != null && !string.IsNullOrWhiteSpace(matchingWaypoint.InteractingObject))
+                        {
+                            annotation.InteractingObject = matchingWaypoint.InteractingObject;
+                        }
+
+                        // Person attributes
+                        if (box.Label == "person")
+                        {
+                            var currentAttributes = personAttributeStore.GetAllAttributes(box.PersonId, box.FrameIndex, waypointMarkers, currentVideoFile);
+
+                            var mergedAttributes = new Dictionary<string, object>();
+                            if (currentAttributes != null)
+                            {
+                                foreach (var kvp in currentAttributes)
+                                {
+                                    string attrName = kvp.Key;
+                                    object attrValue = kvp.Value;
+
+                                    if (attrName == "Weight" || attrName == "BodyPosture")
+                                    {
+                                        if (!mergedAttributes.ContainsKey("Weight/BodyShape"))
+                                            mergedAttributes["Weight/BodyShape"] = attrValue;
+                                        else if (attrValue != null && attrName == "BodyPosture")
+                                            mergedAttributes["Weight/BodyShape"] = attrValue;
+                                    }
+                                    else
+                                    {
+                                        mergedAttributes[attrName] = attrValue;
+                                    }
+                                }
+                            }
+
+                            var formattedAttributes = new Dictionary<string, object>();
+                            foreach (var kvp in mergedAttributes)
+                            {
+                                formattedAttributes[kvp.Key] = FormatAttributeValue(kvp.Key, kvp.Value)!;
+                            }
+
+                            bool isInitialFrame = matchingWaypoint != null && box.FrameIndex == matchingWaypoint.EntryFrame;
+
+                            if (isInitialFrame)
+                            {
+                                var allAttributes = new Dictionary<string, object>();
+                                foreach (string attrName in AllAttributeNames)
+                                {
+                                    allAttributes[attrName] = formattedAttributes.ContainsKey(attrName)
+                                        ? formattedAttributes[attrName] : null!;
+                                }
+                                annotation.PersonAttributes = allAttributes;
+
+                                previousAttributesByPerson[box.PersonId] = new Dictionary<string, object>(allAttributes);
+                            }
+                            else
+                            {
+                                var changedAttributes = new Dictionary<string, object>();
+                                Dictionary<string, object>? previousAttributes = null;
+                                if (previousAttributesByPerson.ContainsKey(box.PersonId))
+                                    previousAttributes = previousAttributesByPerson[box.PersonId];
+
+                                foreach (string attrName in AllAttributeNames)
+                                {
+                                    object? currentValue = formattedAttributes.ContainsKey(attrName) ? formattedAttributes[attrName] : null;
+                                    object? previousValue = previousAttributes != null && previousAttributes.ContainsKey(attrName) ? previousAttributes[attrName] : null;
+
+                                    if (!AreAttributeValuesEqualForExport(currentValue, previousValue) && currentValue != null)
+                                    {
+                                        changedAttributes[attrName] = currentValue;
+                                    }
+                                }
+
+                                if (changedAttributes.Count > 0)
+                                    annotation.PersonAttributes = changedAttributes;
+
+                                // Update previous attributes for next frame comparison
+                                if (!previousAttributesByPerson.ContainsKey(box.PersonId))
+                                    previousAttributesByPerson[box.PersonId] = new Dictionary<string, object>();
+
+                                foreach (string attrName in AllAttributeNames)
+                                {
+                                    object? currentValue = formattedAttributes.ContainsKey(attrName) ? formattedAttributes[attrName] : null;
+                                    if (currentValue != null)
+                                        previousAttributesByPerson[box.PersonId][attrName] = currentValue;
+                                    else if (previousAttributesByPerson[box.PersonId].ContainsKey(attrName))
+                                        previousAttributesByPerson[box.PersonId][attrName] = null!;
+                                }
+                            }
+                        }
+
+                        annotations.Add(annotation);
+                    }
+
+                    imageId++;
+                }
+
+                var labelingData = new LabelingDataExtended
+                {
+                    Info = new VideoInfoExtended
+                    {
+                        Description = "Extended COCO with Tracking",
+                        Version = "1.0",
+                        Year = DateTime.Now.Year,
+                        DateCreated = DateTime.Now.ToString("yyyy-MM-dd"),
+                        VideoFile = Path.GetFileName(currentVideoFile)
+                    },
+                    Licenses = new List<object>(),
+                    Images = images,
+                    Annotations = annotations,
+                    Categories = categories.Values.ToList(),
+                    FailureRanges = waypointFailureRanges
+                };
+
+                var settings = new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Include,
+                    Formatting = Formatting.Indented,
+                    TypeNameHandling = TypeNameHandling.None
+                };
+                string json = JsonConvert.SerializeObject(labelingData, settings);
+                File.WriteAllText(filePath, json);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"JSON 내보내기 오류: {ex.Message}", ex);
+            }
+        }
+
+        #endregion
+
+        #region Delete JSON
+
+        /// <summary>
+        /// Deletes the JSON file for a given video.
+        /// </summary>
+        /// <returns>True if a file was deleted, false if no file existed.</returns>
+        public bool DeleteJsonFileForVideo(string videoFilePath, string? currentJsonFile = null)
+        {
+            string? videoDir = Path.GetDirectoryName(videoFilePath);
+            if (string.IsNullOrEmpty(videoDir) || !Directory.Exists(videoDir))
+                return false;
+
+            string saveDir = Path.Combine(videoDir, "labels");
+
+            string? jsonPath = null;
+
+            if (!string.IsNullOrEmpty(currentJsonFile) && File.Exists(currentJsonFile))
+            {
+                jsonPath = currentJsonFile;
+            }
+            else
+            {
+                string baseFileName = Path.GetFileNameWithoutExtension(videoFilePath);
+                string normalPath = Path.Combine(saveDir, baseFileName + "_labels.json");
+
+                if (File.Exists(normalPath))
+                    jsonPath = normalPath;
+            }
+
+            if (jsonPath == null)
+                return false;
+
+            File.Delete(jsonPath);
+            return true;
+        }
+
+        #endregion
+
+        #region Private Helpers
+
+        private static string FormatFrameTime(int frameIndex, double fps)
+        {
+            if (fps <= 0) return "00:00:00";
+            TimeSpan time = TimeSpan.FromSeconds(frameIndex / fps);
+            return time.ToString(@"hh\:mm\:ss");
+        }
+
+        /// <summary>
+        /// Formats an attribute value according to its type (single-select vs multi-select).
+        /// </summary>
+        private static object? FormatAttributeValue(string attrName, object? attrValue)
+        {
+            if (attrValue == null) return null;
+
+            if (PersonAttributeStore.singleSelectAttributeNames.Contains(attrName))
+            {
+                if (attrValue is List<string> listValue && listValue.Count > 0)
+                    return listValue[0];
+                else if (attrValue is string[] arrayValue && arrayValue.Length > 0)
+                    return arrayValue[0];
+                else if (attrValue is string stringValue)
+                    return stringValue;
+                else
+                    return attrValue.ToString();
+            }
+            else
+            {
+                if (attrValue is List<string> listValue)
+                    return listValue.Count > 0 ? listValue : null;
+                else if (attrValue is string[] arrayValue)
+                    return arrayValue.Length > 0 ? arrayValue.ToList() : null;
+                else if (attrValue is string stringValue)
+                    return new List<string> { stringValue };
+                else
+                    return new List<string> { attrValue.ToString()! };
+            }
+        }
+
+        #endregion
+    }
+}
