@@ -286,7 +286,7 @@ namespace AOLTv1.Forms
             // panelVideoControls (Bottom control bar)
             //
             this.panelVideoControls.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panelVideoControls.Height = 120;
+            this.panelVideoControls.Height = 150;
             this.panelVideoControls.BackColor = System.Drawing.Color.FromArgb(37, 37, 38);
             this.panelVideoControls.Padding = new System.Windows.Forms.Padding(12);
             this.panelVideoControls.Controls.Add(this.groupBoxObjectInfo);
@@ -388,9 +388,9 @@ namespace AOLTv1.Forms
             // panelTimeline
             //
             this.panelTimeline.Location = new System.Drawing.Point(70, 70);
-            this.panelTimeline.Size = new System.Drawing.Size(1000, 30);
+            this.panelTimeline.Size = new System.Drawing.Size(1000, 60);
             this.panelTimeline.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left;
-            this.panelTimeline.BackColor = System.Drawing.Color.FromArgb(62, 62, 66);
+            this.panelTimeline.BackColor = System.Drawing.Color.FromArgb(45, 45, 48);
             this.panelTimeline.Paint += new System.Windows.Forms.PaintEventHandler(this.panelTimeline_Paint);
             this.panelTimeline.MouseDown += new System.Windows.Forms.MouseEventHandler(this.panelTimeline_MouseDown);
             this.panelTimeline.MouseMove += new System.Windows.Forms.MouseEventHandler(this.panelTimeline_MouseMove);

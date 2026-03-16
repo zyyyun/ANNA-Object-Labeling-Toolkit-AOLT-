@@ -1767,72 +1767,268 @@ namespace AOLTv1.Forms
 
         #region Timeline
 
+        // 타임라인 레이아웃 상수
+        private const int TIMELINE_HEADER_HEIGHT = 8;   // 플레이헤드 삼각형 영역
+        private const int TIMELINE_ROW_HEIGHT = 16;     // 각 레이블 행 높이
+        private const int TIMELINE_ROW_PADDING = 1;     // 행 내부 상하 패딩
+        private const int TIMELINE_LABEL_WIDTH = 16;    // "P","V","E" 레이블 영역
+        private const int TIMELINE_SEGMENT_RADIUS = 3;  // 둥근 사각형 반지름
+
+        private static readonly Font timelineFont = new Font("Segoe UI", 7F, FontStyle.Bold);
+        private static readonly Font timelineLabelFont = new Font("Segoe UI", 7F, FontStyle.Bold);
+
+        /// <summary>
+        /// 레이블에 해당하는 행 Y좌표 반환
+        /// </summary>
+        private int GetTimelineRowY(string label)
+        {
+            return label switch
+            {
+                "person" => TIMELINE_HEADER_HEIGHT,
+                "vehicle" => TIMELINE_HEADER_HEIGHT + TIMELINE_ROW_HEIGHT,
+                "event" => TIMELINE_HEADER_HEIGHT + TIMELINE_ROW_HEIGHT * 2,
+                _ => TIMELINE_HEADER_HEIGHT
+            };
+        }
+
+        /// <summary>
+        /// 레이블에 해당하는 세그먼트 색상 반환
+        /// </summary>
+        private Color GetTimelineSegmentColor(string label)
+        {
+            return label switch
+            {
+                "person" => Color.FromArgb(200, 255, 107, 107),
+                "vehicle" => Color.FromArgb(200, 107, 158, 255),
+                "event" => Color.FromArgb(200, 107, 255, 107),
+                _ => Color.FromArgb(200, 180, 180, 180)
+            };
+        }
+
+        /// <summary>
+        /// 둥근 사각형 GraphicsPath 생성
+        /// </summary>
+        private GraphicsPath CreateRoundedRect(RectangleF rect, float radius)
+        {
+            var path = new GraphicsPath();
+            if (rect.Width < radius * 2) radius = rect.Width / 2;
+            if (rect.Height < radius * 2) radius = rect.Height / 2;
+            float d = radius * 2;
+            path.AddArc(rect.X, rect.Y, d, d, 180, 90);
+            path.AddArc(rect.Right - d, rect.Y, d, d, 270, 90);
+            path.AddArc(rect.Right - d, rect.Bottom - d, d, d, 0, 90);
+            path.AddArc(rect.X, rect.Bottom - d, d, d, 90, 90);
+            path.CloseFigure();
+            return path;
+        }
+
         private void panelTimeline_Paint(object sender, PaintEventArgs e)
         {
             Graphics g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
             int width = panelTimeline.Width;
             int height = panelTimeline.Height;
             int totalFrames = _videoService.TotalFrames;
 
-            using (SolidBrush bgBrush = new SolidBrush(Color.FromArgb(250, 204, 21)))
+            // 1. 배경 채우기
+            using (var bgBrush = new SolidBrush(Color.FromArgb(45, 45, 48)))
                 g.FillRectangle(bgBrush, 0, 0, width, height);
+
+            // 2. 행 구분선
+            using (var linePen = new Pen(Color.FromArgb(63, 63, 70), 1))
+            {
+                int y1 = TIMELINE_HEADER_HEIGHT;
+                g.DrawLine(linePen, 0, y1, width, y1);
+                int y2 = y1 + TIMELINE_ROW_HEIGHT;
+                g.DrawLine(linePen, 0, y2, width, y2);
+                int y3 = y2 + TIMELINE_ROW_HEIGHT;
+                g.DrawLine(linePen, 0, y3, width, y3);
+                int y4 = y3 + TIMELINE_ROW_HEIGHT;
+                g.DrawLine(linePen, 0, y4, width, y4);
+            }
+
+            // 3. 행 레이블 ("P", "V", "E")
+            using (var labelBrush = new SolidBrush(Color.FromArgb(120, 255, 107, 107)))
+                g.DrawString("P", timelineLabelFont, labelBrush, 2, TIMELINE_HEADER_HEIGHT + 1);
+            using (var labelBrush = new SolidBrush(Color.FromArgb(120, 107, 158, 255)))
+                g.DrawString("V", timelineLabelFont, labelBrush, 2, TIMELINE_HEADER_HEIGHT + TIMELINE_ROW_HEIGHT + 1);
+            using (var labelBrush = new SolidBrush(Color.FromArgb(120, 107, 255, 107)))
+                g.DrawString("E", timelineLabelFont, labelBrush, 2, TIMELINE_HEADER_HEIGHT + TIMELINE_ROW_HEIGHT * 2 + 1);
 
             if (totalFrames > 0)
             {
+                int trackLeft = TIMELINE_LABEL_WIDTH;
+                int trackWidth = width - trackLeft;
+
+                // 4. 웨이포인트 세그먼트 (둥근 사각형)
                 foreach (var waypoint in waypointMarkers)
                 {
-                    int startX = (int)(width * ((float)waypoint.EntryFrame / totalFrames));
-                    int endX = (int)(width * ((float)waypoint.ExitFrame / totalFrames));
-                    using (SolidBrush markerBrush = new SolidBrush(Color.FromArgb(180, waypoint.MarkerColor)))
-                        g.FillRectangle(markerBrush, startX, 0, endX - startX, height);
+                    int rowY = GetTimelineRowY(waypoint.Label);
+                    Color segColor = GetTimelineSegmentColor(waypoint.Label);
+
+                    int startX = trackLeft + (int)(trackWidth * ((float)waypoint.EntryFrame / totalFrames));
+                    int endX = trackLeft + (int)(trackWidth * ((float)waypoint.ExitFrame / totalFrames));
+                    int segWidth = Math.Max(endX - startX, 4); // 최소 4px
+
+                    var segRect = new RectangleF(startX, rowY + TIMELINE_ROW_PADDING, segWidth, TIMELINE_ROW_HEIGHT - TIMELINE_ROW_PADDING * 2);
+
+                    // 세그먼트 채우기
+                    using (var path = CreateRoundedRect(segRect, TIMELINE_SEGMENT_RADIUS))
+                    using (var brush = new SolidBrush(segColor))
+                    {
+                        g.FillPath(brush, path);
+                    }
+
+                    // 선택된 웨이포인트 강조
+                    bool isSelected = selectedWaypoint != null &&
+                        waypoint.Label == selectedWaypoint.Label &&
+                        waypoint.ObjectId == selectedWaypoint.ObjectId &&
+                        waypoint.EntryFrame == selectedWaypoint.EntryFrame;
+
+                    if (isSelected)
+                    {
+                        using (var path = CreateRoundedRect(segRect, TIMELINE_SEGMENT_RADIUS))
+                        using (var pen = new Pen(Color.White, 2))
+                        {
+                            g.DrawPath(pen, path);
+                        }
+                    }
+
+                    // 세그먼트 내 ID 텍스트 (폭이 충분할 때)
+                    if (segWidth > 25)
+                    {
+                        string prefix = waypoint.Label switch
+                        {
+                            "person" => "P",
+                            "vehicle" => "V",
+                            "event" => "E",
+                            _ => "?"
+                        };
+                        string idText = $"{prefix}{waypoint.ObjectId:D2}";
+                        using (var textBrush = new SolidBrush(Color.FromArgb(220, 255, 255, 255)))
+                        {
+                            var textRect = new RectangleF(startX + 2, rowY + TIMELINE_ROW_PADDING, segWidth - 4, TIMELINE_ROW_HEIGHT - TIMELINE_ROW_PADDING * 2);
+                            var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+                            g.DrawString(idText, timelineFont, textBrush, textRect, sf);
+                        }
+                    }
                 }
 
-                foreach (var waypoint in waypointMarkers)
+                // 5. 플레이헤드 (삼각형 + 세로선)
+                int currentX = trackLeft + (int)(trackWidth * timelineProgress);
+
+                // 세로선
+                using (var pen = new Pen(Color.FromArgb(220, 255, 255, 255), 1.5f))
+                    g.DrawLine(pen, currentX, TIMELINE_HEADER_HEIGHT, currentX, height);
+
+                // 삼각형 머리 (Accent 색상)
+                var triangle = new System.Drawing.Point[]
                 {
-                    int entryX = (int)(width * ((float)waypoint.EntryFrame / totalFrames));
-                    int exitX = (int)(width * ((float)waypoint.ExitFrame / totalFrames));
-                    int markerSize = 8;
-                    bool isSelected = selectedWaypoint != null && waypoint.Label == selectedWaypoint.Label &&
-                        waypoint.ObjectId == selectedWaypoint.ObjectId && waypoint.EntryFrame == selectedWaypoint.EntryFrame;
-                    Color markerColor = isSelected ? Color.FromArgb(220, 38, 38) : waypoint.MarkerColor;
-
-                    using (SolidBrush b = new SolidBrush(markerColor)) { g.FillRectangle(b, entryX - markerSize / 2, 0, markerSize, markerSize); g.FillRectangle(b, exitX - markerSize / 2, height - markerSize, markerSize, markerSize); }
-                    using (Pen p = new Pen(Color.White, 2)) { g.DrawRectangle(p, entryX - markerSize / 2, 0, markerSize, markerSize); g.DrawRectangle(p, exitX - markerSize / 2, height - markerSize, markerSize, markerSize); }
-                }
-
-                int currentX = (int)(width * timelineProgress);
-                using (Pen pen = new Pen(Color.White, 3))
-                    g.DrawLine(pen, currentX, 0, currentX, height);
+                    new System.Drawing.Point(currentX, TIMELINE_HEADER_HEIGHT),
+                    new System.Drawing.Point(currentX - 5, 0),
+                    new System.Drawing.Point(currentX + 5, 0)
+                };
+                using (var brush = new SolidBrush(Color.FromArgb(0, 120, 212)))
+                    g.FillPolygon(brush, triangle);
+                using (var pen = new Pen(Color.FromArgb(30, 140, 230), 1))
+                    g.DrawPolygon(pen, triangle);
             }
 
+            // 6. Entry 설정중 표시
             if (entryFrameIndex.HasValue && !exitFrameIndex.HasValue && totalFrames > 0)
             {
-                int entryX = (int)(width * ((float)entryFrameIndex.Value / totalFrames));
-                using (Pen pen = new Pen(Color.Red, 3))
+                int trackLeft = TIMELINE_LABEL_WIDTH;
+                int trackWidth = width - trackLeft;
+                int entryX = trackLeft + (int)(trackWidth * ((float)entryFrameIndex.Value / totalFrames));
+
+                // 빨간 세로선
+                using (var pen = new Pen(Color.FromArgb(255, 68, 68), 2))
                     g.DrawLine(pen, entryX, 0, entryX, height);
+
+                // 빨간 삼각형
+                var tri = new System.Drawing.Point[]
+                {
+                    new System.Drawing.Point(entryX, TIMELINE_HEADER_HEIGHT),
+                    new System.Drawing.Point(entryX - 5, 0),
+                    new System.Drawing.Point(entryX + 5, 0)
+                };
+                using (var brush = new SolidBrush(Color.FromArgb(255, 68, 68)))
+                    g.FillPolygon(brush, tri);
             }
+        }
+
+        /// <summary>
+        /// 클릭 위치에서 웨이포인트 세그먼트 감지 + 선택
+        /// </summary>
+        private bool TryNavigateToMarker(int mouseX, int mouseY)
+        {
+            if (_videoService.TotalFrames == 0) return false;
+
+            int width = panelTimeline.Width;
+            int totalFrames = _videoService.TotalFrames;
+            int trackLeft = TIMELINE_LABEL_WIDTH;
+            int trackWidth = width - trackLeft;
+
+            // 클릭 Y좌표로 어떤 행인지 판별
+            string targetLabel = null;
+            if (mouseY >= TIMELINE_HEADER_HEIGHT && mouseY < TIMELINE_HEADER_HEIGHT + TIMELINE_ROW_HEIGHT)
+                targetLabel = "person";
+            else if (mouseY >= TIMELINE_HEADER_HEIGHT + TIMELINE_ROW_HEIGHT && mouseY < TIMELINE_HEADER_HEIGHT + TIMELINE_ROW_HEIGHT * 2)
+                targetLabel = "vehicle";
+            else if (mouseY >= TIMELINE_HEADER_HEIGHT + TIMELINE_ROW_HEIGHT * 2 && mouseY < TIMELINE_HEADER_HEIGHT + TIMELINE_ROW_HEIGHT * 3)
+                targetLabel = "event";
+
+            if (targetLabel == null) return false;
+
+            // 해당 행의 세그먼트 중 X좌표에 해당하는 웨이포인트 찾기
+            foreach (var waypoint in waypointMarkers)
+            {
+                if (waypoint.Label != targetLabel) continue;
+
+                int startX = trackLeft + (int)(trackWidth * ((float)waypoint.EntryFrame / totalFrames));
+                int endX = trackLeft + (int)(trackWidth * ((float)waypoint.ExitFrame / totalFrames));
+
+                if (mouseX >= startX - 2 && mouseX <= endX + 2)
+                {
+                    // 해당 웨이포인트의 Entry 프레임으로 이동 + 선택
+                    selectedWaypoint = waypoint;
+                    LoadFrame(waypoint.EntryFrame);
+                    panelTimeline.Invalidate();
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private void panelTimeline_MouseDown(object sender, MouseEventArgs e)
         {
             if (_videoService.TotalFrames == 0) return;
+
+            // 세그먼트 클릭 감지 먼저
+            if (TryNavigateToMarker(e.X, e.Y))
+                return;
+
+            // 세그먼트가 아니면 드래그 시작
             isTimelineDragging = true;
-            UpdateFrameFromMousePosition(e.X);
+            UpdateFrameFromTimeline(e.X);
         }
 
         private void panelTimeline_MouseMove(object sender, MouseEventArgs e)
         {
             if (isTimelineDragging && _videoService.TotalFrames > 0)
-                UpdateFrameFromMousePosition(e.X);
+                UpdateFrameFromTimeline(e.X);
         }
 
         private void panelTimeline_MouseUp(object sender, MouseEventArgs e) => isTimelineDragging = false;
 
-        private void UpdateFrameFromMousePosition(int mouseX)
+        private void UpdateFrameFromTimeline(int mouseX)
         {
             if (_videoService.TotalFrames == 0) return;
-            float clickPosition = Math.Max(0, Math.Min(1, (float)mouseX / panelTimeline.Width));
+            int trackLeft = TIMELINE_LABEL_WIDTH;
+            int trackWidth = panelTimeline.Width - trackLeft;
+            float clickPosition = Math.Max(0, Math.Min(1, (float)(mouseX - trackLeft) / trackWidth));
             int targetFrame = Math.Max(0, Math.Min(_videoService.TotalFrames - 1, (int)(clickPosition * _videoService.TotalFrames)));
             LoadFrame(targetFrame);
         }
