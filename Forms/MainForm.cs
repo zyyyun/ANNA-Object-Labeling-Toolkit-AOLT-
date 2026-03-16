@@ -1995,6 +1995,9 @@ namespace AOLTv1.Forms
                     selectedWaypoint = waypoint;
                     LoadFrame(waypoint.EntryFrame);
                     panelTimeline.Invalidate();
+
+                    // 우측 ListView에서도 해당 웨이포인트 선택
+                    SelectWaypointInListView(waypoint);
                     return true;
                 }
             }
@@ -2499,6 +2502,32 @@ namespace AOLTv1.Forms
             return waypointMarkers.FirstOrDefault(w =>
                 w.Label == box.Label && w.ObjectId == boxId &&
                 box.FrameIndex >= w.EntryFrame && box.FrameIndex <= w.ExitFrame);
+        }
+
+        private void SelectWaypointInListView(WaypointMarker waypoint)
+        {
+            ListView targetListView = null;
+            if (waypoint.Label == "person") targetListView = listViewPersonWaypoints;
+            else if (waypoint.Label == "vehicle") targetListView = listViewVehicleWaypoints;
+            else if (waypoint.Label == "event") targetListView = listViewEventWaypoints;
+
+            if (targetListView == null) return;
+
+            foreach (ListViewItem item in targetListView.Items)
+            {
+                if (item.Tag is WaypointMarker marker &&
+                    marker.Label == waypoint.Label &&
+                    marker.ObjectId == waypoint.ObjectId &&
+                    marker.EntryFrame == waypoint.EntryFrame)
+                {
+                    suppressWaypointClickOnce = true;
+                    targetListView.SelectedItems.Clear();
+                    item.Selected = true;
+                    item.EnsureVisible();
+                    targetListView.Focus();
+                    return;
+                }
+            }
         }
 
         private object GetPersonAttribute(int personId, int frameIndex, string attributeName)
