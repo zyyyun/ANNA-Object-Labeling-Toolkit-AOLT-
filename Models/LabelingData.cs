@@ -38,10 +38,6 @@ namespace AOLTv1.Models
         [JsonProperty("track_info")] public TrackInfo TrackInfo { get; set; }
         [JsonProperty("interacting_object", NullValueHandling = NullValueHandling.Ignore)]
         public string InteractingObject { get; set; }
-        [JsonProperty("person_attributes", NullValueHandling = NullValueHandling.Ignore)]
-        public Dictionary<string, object> PersonAttributes { get; set; }
-        [JsonProperty("attributes", NullValueHandling = NullValueHandling.Ignore)]
-        public Dictionary<string, object> Attributes { get; set; }
     }
 
     public class CategoryData
@@ -49,8 +45,6 @@ namespace AOLTv1.Models
         [JsonProperty("id")] public int Id { get; set; }
         [JsonProperty("name")] public string Name { get; set; }
         [JsonProperty("supercategory")] public string Supercategory { get; set; }
-        [JsonProperty("attributes", NullValueHandling = NullValueHandling.Include)]
-        public Dictionary<string, object> Attributes { get; set; }
     }
 
     public class VideoInfoExtended
@@ -69,7 +63,6 @@ namespace AOLTv1.Models
         [JsonProperty("images")] public List<ImageInfo> Images { get; set; }
         [JsonProperty("annotations")] public List<AnnotationData> Annotations { get; set; }
         [JsonProperty("categories")] public List<CategoryData> Categories { get; set; }
-        [JsonProperty("failure_ranges")] public Dictionary<string, List<(int start, int end)>>? FailureRanges { get; set; }
     }
 
     #endregion

@@ -33,7 +33,6 @@ namespace AOLTv1.Forms
         #region Services
 
         private VideoService _videoService;
-        private TrackingService _trackingService;
         private JsonService _jsonService;
 
         #endregion
@@ -45,7 +44,6 @@ namespace AOLTv1.Forms
         private BoundingBox drawingBox;
         private List<WaypointMarker> waypointMarkers = new List<WaypointMarker>();
         private WaypointMarker selectedWaypoint;
-        private PersonAttributeStore personAttributeStore = new PersonAttributeStore();
         private Dictionary<int, CategoryData> categoryMap = new Dictionary<int, CategoryData>();
         private int nextAnnotationId = 1;
         private string currentSelectedLabel = "person";
@@ -69,28 +67,15 @@ namespace AOLTv1.Forms
         private bool isWaitingForDoubleClick;
         private System.Drawing.Point lastClickPoint;
         private System.Threading.Timer doubleClickTimer;
-        private bool isAttributeViewEnabled;
-        private Dictionary<(int personId, int frameIndex), PersonAttributeWindow> attributeWindows = new();
         private int? entryFrameIndex;
         private int? exitFrameIndex;
         private bool suppressWaypointClickOnce;
 
         #endregion
 
-        #region Tracking State
-
-        private bool isTrackingInProgress;
-        private Dictionary<string, List<(int start, int end)>> waypointFailureRanges = new();
-        private Dictionary<string, HashSet<int>> manuallyAdjustedFrames = new();
-        private Dictionary<string, int> forcedInertiaTrackingStartFrames = new();
-        private Dictionary<string, List<(int startFrame, int? endFrame)>> disappearedRanges = new();
-
-        #endregion
-
         #region Rendering
 
         private Font labelFont = new Font("Segoe UI", 9F, FontStyle.Bold);
-        private Font attributeFont = new Font("Consolas", 7F);
         private int lastCachedFrameForPaint = -1;
         private List<BoundingBox> cachedCurrentFrameBoxes = new List<BoundingBox>();
 
@@ -142,7 +127,6 @@ namespace AOLTv1.Forms
             InitializeComponent();
 
             _videoService = new VideoService();
-            _trackingService = new TrackingService();
             _jsonService = new JsonService();
 
             UpdateBoxCount();
@@ -335,7 +319,6 @@ namespace AOLTv1.Forms
                 }
 
                 pictureBoxVideo.Invalidate();
-                UpdateAttributeWindows();
             }
             catch (Exception ex)
             {
@@ -423,16 +406,6 @@ namespace AOLTv1.Forms
                     categoryMap = result.CategoryMap;
                     frameTimestampMap = result.FrameTimestampMap;
                     nextAnnotationId = result.NextAnnotationId;
-
-                    // Copy failure ranges to tracking service
-                    _trackingService.WaypointFailureRanges = result.WaypointFailureRanges;
-                    waypointFailureRanges = result.WaypointFailureRanges;
-
-                    // Restore person attributes
-                    foreach (var kvp in result.AttributesByPerson)
-                    {
-                        personAttributeStore.SetAttributesBatch(kvp.Key, kvp.Value, waypointMarkers, _videoService.CurrentVideoFile);
-                    }
                 }
 
                 InvalidateBoxCache();
@@ -541,8 +514,6 @@ namespace AOLTv1.Forms
                 _videoService.FrameHeight,
                 boundingBoxes,
                 waypointMarkers,
-                waypointFailureRanges,
-                personAttributeStore,
                 _videoService);
 
             currentJsonFile = savePath;
@@ -601,18 +572,6 @@ namespace AOLTv1.Forms
                 if (isPlaying)
                 {
                     // Close attribute windows on play
-                    if (isAttributeViewEnabled)
-                    {
-                        isAttributeViewEnabled = false;
-                        foreach (var window in attributeWindows.Values.ToList()) window.Close();
-                        attributeWindows.Clear();
-                        if (btnToggleAttributeView != null)
-                        {
-                            btnToggleAttributeView.Text = "속성값 조회";
-                            btnToggleAttributeView.BackColor = Color.FromArgb(100, 116, 139);
-                        }
-                    }
-
                     btnPlay.Text = "⏸";
                     lastFrameTime = DateTime.Now.Ticks / 10000;
                     msPerFrame = 1000.0 / _videoService.Fps;
@@ -817,10 +776,6 @@ namespace AOLTv1.Forms
                     EntryTime = entryTime.ToString(@"hh\:mm\:ss"), ExitTime = exitTime.ToString(@"hh\:mm\:ss"),
                     ObjectId = personId, Label = "person"
                 });
-
-                // 자동 관성 추적 실행
-                _trackingService.ManuallyAdjustedFrames = manuallyAdjustedFrames;
-                _trackingService.PerformForcedInertiaTracking(personBox, entryFrameIndex.Value, exitFrameIndex.Value, boundingBoxes);
             }
 
             // Create Vehicle waypoints
@@ -842,10 +797,6 @@ namespace AOLTv1.Forms
                     EntryTime = entryTime.ToString(@"hh\:mm\:ss"), ExitTime = exitTime.ToString(@"hh\:mm\:ss"),
                     ObjectId = vehicleId, Label = "vehicle"
                 });
-
-                // 자동 관성 추적 실행
-                _trackingService.ManuallyAdjustedFrames = manuallyAdjustedFrames;
-                _trackingService.PerformForcedInertiaTracking(vehicleBox, entryFrameIndex.Value, exitFrameIndex.Value, boundingBoxes);
             }
 
             // Create Event waypoints
@@ -901,71 +852,6 @@ namespace AOLTv1.Forms
             if (labelSubtitleTimestamp != null)
                 labelSubtitleTimestamp.Visible = _videoService.IsSubtitleVisible;
             UpdateTimeLabels();
-        }
-
-        private void btnToggleAttributeView_Click(object sender, EventArgs e)
-        {
-            if (isPlaying)
-            {
-                MessageBox.Show("속성값 조회는 영상이 일시정지된 상태에서만 사용할 수 있습니다.", "알림", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-            isAttributeViewEnabled = !isAttributeViewEnabled;
-            btnToggleAttributeView.Text = isAttributeViewEnabled ? "속성값 조회 끄기" : "속성값 조회";
-            btnToggleAttributeView.BackColor = isAttributeViewEnabled
-                ? Color.FromArgb(239, 68, 68) : Color.FromArgb(100, 116, 139);
-            UpdateAttributeWindows();
-        }
-
-        private void UpdateAttributeWindows()
-        {
-            if (isPlaying) return;
-
-            int currentFrameIndex = _videoService.CurrentFrameIndex;
-
-            if (isAttributeViewEnabled)
-            {
-                var currentPersonBoxes = boundingBoxes
-                    .Where(b => b.FrameIndex == currentFrameIndex && b.Label == "person" && !b.IsDeleted).ToList();
-
-                var windowsToRemove = attributeWindows.Keys
-                    .Where(key => !currentPersonBoxes.Any(b => b.PersonId == key.personId && b.FrameIndex == key.frameIndex)).ToList();
-                foreach (var key in windowsToRemove)
-                {
-                    if (attributeWindows.ContainsKey(key)) { attributeWindows[key].Close(); attributeWindows.Remove(key); }
-                }
-
-                int windowIndex = 0;
-                foreach (var box in currentPersonBoxes)
-                {
-                    var key = (box.PersonId, box.FrameIndex);
-                    var attributes = personAttributeStore.GetAllAttributes(box.PersonId, box.FrameIndex, waypointMarkers, _videoService.CurrentVideoFile);
-
-                    if (attributeWindows.ContainsKey(key))
-                    {
-                        attributeWindows[key].UpdateAttributes(attributes);
-                    }
-                    else
-                    {
-                        var viewRect = CoordinateHelper.ImageToView(
-                            new RectangleF(box.Rectangle.X, box.Rectangle.Y, box.Rectangle.Width, box.Rectangle.Height), pictureBoxVideo);
-                        var initialLocation = new System.Drawing.Point(
-                            this.Location.X + (int)viewRect.Right + 10 + (windowIndex * 30),
-                            this.Location.Y + (int)viewRect.Top + (windowIndex * 30));
-
-                        var window = new PersonAttributeWindow(box.PersonId, box.FrameIndex, attributes, initialLocation);
-                        window.FormClosed += (s, ev) => { if (attributeWindows.ContainsKey(key)) attributeWindows.Remove(key); };
-                        window.Show();
-                        attributeWindows[key] = window;
-                        windowIndex++;
-                    }
-                }
-            }
-            else
-            {
-                foreach (var window in attributeWindows.Values.ToList()) window.Close();
-                attributeWindows.Clear();
-            }
         }
 
         #endregion
@@ -1321,25 +1207,6 @@ namespace AOLTv1.Forms
             // Right-click: Person attribute editing
             if (e.Button == MouseButtons.Right)
             {
-                var clickedBox = GetBoundingBoxAt(e.Location);
-                if (clickedBox != null && clickedBox.Label == "person")
-                {
-                    var waypoint = FindWaypointForBox(clickedBox);
-                    int waypointEntryFrame = waypoint != null ? waypoint.EntryFrame : currentFrameIndex;
-
-                    using (var form = new PersonAttributesForm(
-                        clickedBox.PersonId, waypointEntryFrame, currentFrameIndex,
-                        GetPersonAttribute, SetPersonAttribute))
-                    {
-                        if (form.ShowDialog() == DialogResult.OK)
-                        {
-                            UpdateBboxListDisplay();
-                            pictureBoxVideo.Invalidate();
-                            UpdateAttributeWindows();
-                        }
-                    }
-                    return;
-                }
             }
 
             if (currentMode == DrawMode.Draw)
@@ -1543,7 +1410,6 @@ namespace AOLTv1.Forms
                 var undoBox = CloneBoundingBox(selectedBox);
                 undoBox.Rectangle = originalResizeRect;
                 AddUndoAction(new UndoAction { Type = UndoActionType.ModifyBox, Box = undoBox });
-                RecordManuallyAdjustedFrame(selectedBox);
                 InvalidateBoxCache();
                 if (selectedBox != null && selectedBox.Label == "event")
                     PropagateEventBoxFromCurrentFrame(selectedBox);
@@ -1558,7 +1424,6 @@ namespace AOLTv1.Forms
                     isDragging = false;
                     if (selectedBox != null)
                     {
-                        RecordManuallyAdjustedFrame(selectedBox);
                         if (selectedBox.Label == "event")
                             PropagateEventBoxFromCurrentFrame(selectedBox);
                     }
@@ -2064,7 +1929,6 @@ namespace AOLTv1.Forms
                     var boxToModify = boundingBoxes.FirstOrDefault(b => b.FrameIndex == action.Box.FrameIndex && GetBoxId(b) == GetBoxId(action.Box) && b.Label == action.Box.Label);
                     if (boxToModify != null) { boxToModify.Rectangle = action.OriginalRectangle; boxToModify.Label = action.OriginalLabel; SetBoxId(boxToModify, action.OriginalLabel, action.OriginalObjectId); InvalidateBoxCache(); }
                     break;
-                case UndoActionType.Tracking: if (action.TrackedBoxes != null) foreach (var box in action.TrackedBoxes) boundingBoxes.Remove(box); InvalidateBoxCache(); break;
             }
             redoStack.Push(action);
             UpdateBoxCount(); UpdateBboxListDisplay(); pictureBoxVideo.Invalidate();
@@ -2082,7 +1946,6 @@ namespace AOLTv1.Forms
                     var boxToModify = boundingBoxes.FirstOrDefault(b => b.FrameIndex == action.Box.FrameIndex && GetBoxId(b) == action.OriginalObjectId && b.Label == action.OriginalLabel);
                     if (boxToModify != null) { boxToModify.Rectangle = action.Box.Rectangle; boxToModify.Label = action.Box.Label; SetBoxId(boxToModify, action.Box.Label, GetBoxId(action.Box)); InvalidateBoxCache(); }
                     break;
-                case UndoActionType.Tracking: if (action.TrackedBoxes != null) foreach (var box in action.TrackedBoxes) boundingBoxes.Add(box); InvalidateBoxCache(); break;
             }
             undoStack.Push(action);
             UpdateBoxCount(); UpdateBboxListDisplay(); pictureBoxVideo.Invalidate();
@@ -2131,31 +1994,10 @@ namespace AOLTv1.Forms
 
         #endregion
 
-        #region Tracking (R key / Shift+T)
-
-        private void RecordManuallyAdjustedFrame(BoundingBox box)
-        {
-            if (box == null) return;
-            int boxId = GetBoxId(box);
-            string key = $"{box.Label}_{boxId}";
-            if (!manuallyAdjustedFrames.ContainsKey(key))
-                manuallyAdjustedFrames[key] = new HashSet<int>();
-            manuallyAdjustedFrames[key].Add(box.FrameIndex);
-
-            // Also update tracking service
-            if (!_trackingService.ManuallyAdjustedFrames.ContainsKey(key))
-                _trackingService.ManuallyAdjustedFrames[key] = new HashSet<int>();
-            _trackingService.ManuallyAdjustedFrames[key].Add(box.FrameIndex);
-        }
-
-        #endregion
-
         #region Keyboard Shortcuts
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
-            if (isTrackingInProgress) return true;
-
             bool isVideoLoaded = _videoService.IsVideoLoaded;
             if (isVideoLoaded)
             {
@@ -2169,8 +2011,6 @@ namespace AOLTv1.Forms
 
         private void MainForm_KeyDown(object sender, KeyEventArgs e)
         {
-            if (isTrackingInProgress) { e.Handled = true; return; }
-
             Control focusedControl = this.ActiveControl;
             if (focusedControl is TextBox || focusedControl is ComboBox)
             {
@@ -2229,7 +2069,6 @@ namespace AOLTv1.Forms
                 if (isPlaying) lastFrameTime = DateTime.Now.Ticks / 10000;
                 UpdateTimeLabels(); e.Handled = true;
             }
-            else if (e.Shift && e.KeyCode == Keys.N && !e.Control) { isAttributeViewEnabled = !isAttributeViewEnabled; btnToggleAttributeView.Text = isAttributeViewEnabled ? "속성값 조회 끄기" : "속성값 조회"; btnToggleAttributeView.BackColor = isAttributeViewEnabled ? Color.FromArgb(239, 68, 68) : Color.FromArgb(100, 116, 139); UpdateAttributeWindows(); e.Handled = true; }
             else if (selectedBox != null && !e.Control && (e.KeyCode == Keys.W || e.KeyCode == Keys.A || e.KeyCode == Keys.S || e.KeyCode == Keys.D))
             {
                 int moveAmount = e.Shift ? 10 : 2;
@@ -2252,38 +2091,6 @@ namespace AOLTv1.Forms
             else if (e.Control && e.KeyCode == Keys.Y) { Redo(); e.Handled = true; }
             else if (e.KeyCode == Keys.E && !e.Control && !e.Alt) { SetEntryMarker(); e.Handled = true; }
             else if (e.KeyCode == Keys.X && !e.Control && !e.Alt) { _ = SetExitMarkerAndCreateWaypoint(); e.Handled = true; }
-            else if (e.Shift && e.KeyCode == Keys.T && !e.Control && !e.Alt)
-            {
-                if (selectedBox != null)
-                {
-                    var waypoint = FindWaypointForBox(selectedBox);
-                    if (waypoint != null)
-                    {
-                        int aFrame = waypoint.EntryFrame;
-                        int bFrame = waypoint.ExitFrame;
-
-                        if (aFrame < bFrame)
-                        {
-                            _trackingService.ManuallyAdjustedFrames = manuallyAdjustedFrames;
-                            var result = _trackingService.PerformForcedInertiaTracking(selectedBox, aFrame, bFrame, boundingBoxes);
-                            if (result.Success)
-                            {
-                                InvalidateBoxCache(); UpdateBoxCount(); UpdateBboxListDisplay(); pictureBoxVideo.Invalidate();
-                                MessageBox.Show($"강제 관성 추적 완료.\n보간된 박스: {result.InterpolatedCount}개", "완료", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                            }
-                            else
-                            {
-                                MessageBox.Show(result.ErrorMessage, "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            }
-                        }
-                        else
-                        {
-                            MessageBox.Show("a프레임은 b프레임보다 작아야 합니다.", "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        }
-                    }
-                }
-                e.Handled = true;
-            }
             else if (e.Control && e.KeyCode == Keys.S) { btnExportJson_Click(sender, e); e.Handled = true; }
             else if (e.KeyCode == Keys.D1 && !e.Control && !e.Alt) { btnSelectAll_Click(sender, e); e.Handled = true; }
             else if (e.KeyCode == Keys.D2 && !e.Control && !e.Alt) { btnEdit_Click(sender, e); e.Handled = true; }
@@ -2300,20 +2107,6 @@ namespace AOLTv1.Forms
             else if (e.KeyCode == Keys.OemPeriod && !e.Shift)
             {
                 if (_videoService.CurrentFrameIndex < _videoService.TotalFrames - 1) LoadFrame(_videoService.CurrentFrameIndex + 1);
-                e.Handled = true;
-            }
-            else if (e.KeyCode == Keys.P && !e.Control && !e.Shift && !e.Alt)
-            {
-                // P: open person attributes
-                if (selectedBox != null && selectedBox.Label == "person")
-                {
-                    var waypoint = FindWaypointForBox(selectedBox);
-                    int waypointEntryFrame = waypoint != null ? waypoint.EntryFrame : _videoService.CurrentFrameIndex;
-                    using (var form = new PersonAttributesForm(selectedBox.PersonId, waypointEntryFrame, _videoService.CurrentFrameIndex, GetPersonAttribute, SetPersonAttribute))
-                    {
-                        if (form.ShowDialog() == DialogResult.OK) { UpdateBboxListDisplay(); pictureBoxVideo.Invalidate(); UpdateAttributeWindows(); }
-                    }
-                }
                 e.Handled = true;
             }
         }
@@ -2528,16 +2321,6 @@ namespace AOLTv1.Forms
                     return;
                 }
             }
-        }
-
-        private object GetPersonAttribute(int personId, int frameIndex, string attributeName)
-        {
-            return personAttributeStore.GetAttribute(personId, frameIndex, attributeName, waypointMarkers, _videoService.CurrentVideoFile);
-        }
-
-        private void SetPersonAttribute(int personId, int waypointEntryFrame, string attributeName, object value)
-        {
-            personAttributeStore.SetAttribute(personId, waypointEntryFrame, _videoService.CurrentFrameIndex, attributeName, value, waypointMarkers, _videoService.CurrentVideoFile);
         }
 
         private void UpdateObjectInfo(BoundingBox box)

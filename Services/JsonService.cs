@@ -37,19 +37,6 @@ namespace AOLTv1.Services
             Color.FromArgb(236, 72, 153),
         };
 
-        /// <summary>All known person attribute names for export.</summary>
-        private static readonly HashSet<string> AllAttributeNames = new()
-        {
-            "Occlusion", "BodyView",
-            "Age", "Gender", "Height", "Weight/BodyShape", "Face",
-            "HairLength", "HairStyle", "HairColor",
-            "UpperClothType", "UpperClothSleeve", "UpperClothPattern", "UpperClothColor",
-            "LowerClothType", "LowerClothLegwear", "LowerClothLength", "LowerClothPattern", "LowerClothColor", "LowerClothMaterial",
-            "FootwearType", "FootwearColor",
-            "HeadwearType", "FacewearType", "BagType", "CarringItemType",
-            "ActionType"
-        };
-
         #endregion
 
         #region Helper Methods
@@ -108,30 +95,6 @@ namespace AOLTv1.Services
             return $"{label}_{boxId:D2}";
         }
 
-        /// <summary>
-        /// Compares two attribute values for equality, supporting arrays (List&lt;string&gt;).
-        /// </summary>
-        public static bool AreAttributeValuesEqualForExport(object? current, object? previous)
-        {
-            if (current == null && previous == null) return true;
-            if (current == null || previous == null) return false;
-
-            List<string> currentList;
-            List<string> previousList;
-
-            if (current is List<string> cl) currentList = cl;
-            else if (current is string[] ca) currentList = ca.ToList();
-            else if (current is string cs) currentList = new List<string> { cs };
-            else currentList = new List<string> { current.ToString()! };
-
-            if (previous is List<string> pl) previousList = pl;
-            else if (previous is string[] pa) previousList = pa.ToList();
-            else if (previous is string ps) previousList = new List<string> { ps };
-            else previousList = new List<string> { previous.ToString()! };
-
-            return currentList.OrderBy(x => x).SequenceEqual(previousList.OrderBy(x => x));
-        }
-
         #endregion
 
         #region Resolve JSON Path
@@ -175,9 +138,7 @@ namespace AOLTv1.Services
             public List<WaypointMarker> WaypointMarkers { get; set; } = new();
             public Dictionary<int, CategoryData> CategoryMap { get; set; } = new();
             public Dictionary<int, string> FrameTimestampMap { get; set; } = new();
-            public Dictionary<string, List<(int start, int end)>> WaypointFailureRanges { get; set; } = new();
             public int NextAnnotationId { get; set; } = 1;
-            public Dictionary<int, List<(int waypointEntryFrame, int applyFromFrame, string attributeName, object value)>> AttributesByPerson { get; set; } = new();
         }
 
         /// <summary>
@@ -262,12 +223,6 @@ namespace AOLTv1.Services
                 if (labelingData?.Annotations == null)
                     return result;
 
-                // Failure ranges
-                if (labelingData.FailureRanges != null)
-                {
-                    result.WaypointFailureRanges = labelingData.FailureRanges;
-                }
-
                 // ImageId -> FrameNumber mapping
                 var imageIdToFrameNumber = new Dictionary<int, int>();
                 if (labelingData.Images != null)
@@ -282,17 +237,11 @@ namespace AOLTv1.Services
                     }
                 }
 
-                // Attribute schema from categories
-                Dictionary<string, object>? attributeSchema = null;
                 if (labelingData.Categories != null)
                 {
                     foreach (var category in labelingData.Categories)
                     {
                         result.CategoryMap[category.Id] = category;
-                        if (category.Supercategory == "person" && category.Attributes != null)
-                        {
-                            attributeSchema = category.Attributes;
-                        }
                     }
                 }
 
@@ -421,73 +370,6 @@ namespace AOLTv1.Services
                     waypointIndex++;
                 }
 
-                // Process person attributes
-                progressCallback?.Invoke("속성 복원 중...");
-
-                var waypointMap = new Dictionary<(string label, int objectId, int frameNumber), int>();
-                foreach (var waypoint in result.WaypointMarkers)
-                {
-                    for (int frame = waypoint.EntryFrame; frame <= waypoint.ExitFrame; frame++)
-                    {
-                        waypointMap[(waypoint.Label, waypoint.ObjectId, frame)] = waypoint.EntryFrame;
-                    }
-                }
-
-                foreach (var annotation in labelingData.Annotations)
-                {
-                    if (annotation.Bbox == null || annotation.Bbox.Length < 4)
-                        continue;
-
-                    int catIdAttr = annotation.CategoryId;
-                    if (catIdAttr < 1 || catIdAttr > 20) continue; // person only
-
-                    int personId = annotation.TrackId;
-
-                    int frameNumber = annotation.ImageId;
-                    if (imageIdToFrameNumber.ContainsKey(annotation.ImageId))
-                        frameNumber = imageIdToFrameNumber[annotation.ImageId];
-
-                    int waypointEntryFrame = frameNumber;
-                    if (waypointMap.TryGetValue(("person", personId, frameNumber), out int entryFrame))
-                        waypointEntryFrame = entryFrame;
-
-                    Dictionary<string, object>? attributesToProcess = null;
-
-                    if (annotation.PersonAttributes != null && annotation.PersonAttributes.Count > 0)
-                        attributesToProcess = annotation.PersonAttributes;
-                    else if (annotation.Attributes != null && annotation.Attributes.Count > 0)
-                        attributesToProcess = annotation.Attributes;
-
-                    if (attributesToProcess == null || attributesToProcess.Count == 0)
-                        continue;
-
-                    if (!result.AttributesByPerson.ContainsKey(personId))
-                        result.AttributesByPerson[personId] = new();
-
-                    foreach (var kvp in attributesToProcess)
-                    {
-                        string attrName = kvp.Key;
-                        object? attrValue = kvp.Value;
-
-                        if (attrValue == null) continue;
-
-                        object processedValue = attrValue;
-
-                        // Convert arrays for non-waypoint-scoped attributes
-                        if (attrName != "Occlusion" && attrName != "BodyView" && attrName != "ActionType")
-                        {
-                            if (attrValue is JArray jArray)
-                                processedValue = jArray.ToObject<List<string>>()!;
-                            else if (attrValue is List<object> objectList)
-                                processedValue = objectList.Select(x => x?.ToString()).Where(x => x != null).ToList()!;
-                            else if (attrValue is object[] objectArray)
-                                processedValue = objectArray.Select(x => x?.ToString()).Where(x => x != null).ToList()!;
-                        }
-
-                        result.AttributesByPerson[personId].Add((waypointEntryFrame, frameNumber, attrName, processedValue));
-                    }
-                }
-
                 result.Success = true;
             }
             catch (OutOfMemoryException oomEx)
@@ -513,16 +395,6 @@ namespace AOLTv1.Services
         /// <summary>
         /// Exports annotation data to a COCO-format JSON file.
         /// </summary>
-        /// <param name="filePath">Output file path.</param>
-        /// <param name="currentVideoFile">Current video file name (for info section).</param>
-        /// <param name="fps">Video FPS.</param>
-        /// <param name="frameWidth">Video frame width.</param>
-        /// <param name="frameHeight">Video frame height.</param>
-        /// <param name="boundingBoxes">All bounding boxes.</param>
-        /// <param name="waypointMarkers">All waypoint markers.</param>
-        /// <param name="waypointFailureRanges">Failure ranges per waypoint key.</param>
-        /// <param name="personAttributeStore">Person attribute store.</param>
-        /// <param name="videoService">Video service for subtitle timestamps.</param>
         public void ExportToJsonExtended(
             string filePath,
             string currentVideoFile,
@@ -531,8 +403,6 @@ namespace AOLTv1.Services
             int frameHeight,
             List<BoundingBox> boundingBoxes,
             List<WaypointMarker> waypointMarkers,
-            Dictionary<string, List<(int start, int end)>>? waypointFailureRanges,
-            PersonAttributeStore personAttributeStore,
             VideoService? videoService = null)
         {
             try
@@ -544,35 +414,6 @@ namespace AOLTv1.Services
                 var frameGroups = boundingBoxes.Where(b => !b.IsDeleted).GroupBy(b => b.FrameIndex).OrderBy(g => g.Key);
                 int imageId = 0;
                 int nextAnnotationId = 1;
-                bool personCategoryAttributesSet = false;
-
-                var previousAttributesByPerson = new Dictionary<int, Dictionary<string, object>>();
-
-                // Collect initial attributes per person
-                var initialAttributesByPerson = new Dictionary<int, Dictionary<string, object>>();
-                var personIds = boundingBoxes
-                    .Where(b => b.Label == "person" && !b.IsDeleted)
-                    .Select(b => b.PersonId)
-                    .Distinct()
-                    .ToList();
-
-                foreach (var personId in personIds)
-                {
-                    var firstWaypoint = waypointMarkers
-                        .Where(w => w.Label == "person" && w.ObjectId == personId)
-                        .OrderBy(w => w.EntryFrame)
-                        .FirstOrDefault();
-
-                    if (firstWaypoint != null)
-                    {
-                        var attributes = personAttributeStore.GetAllAttributes(
-                            personId, firstWaypoint.EntryFrame, waypointMarkers, currentVideoFile);
-                        if (attributes != null && attributes.Count > 0)
-                        {
-                            initialAttributesByPerson[personId] = attributes;
-                        }
-                    }
-                }
 
                 foreach (var frameGroup in frameGroups)
                 {
@@ -607,46 +448,6 @@ namespace AOLTv1.Services
                                 Name = categoryName,
                                 Supercategory = box.Label
                             };
-
-                            if (box.Label == "person" && !personCategoryAttributesSet)
-                            {
-                                categories[categoryId].Attributes = new Dictionary<string, object>();
-
-                                foreach (string attrName in AllAttributeNames)
-                                {
-                                    object? mergedValue = null;
-
-                                    var valuesForAttribute = new List<object>();
-                                    foreach (var personAttrs in initialAttributesByPerson.Values)
-                                    {
-                                        if (personAttrs.ContainsKey(attrName) && personAttrs[attrName] != null)
-                                            valuesForAttribute.Add(personAttrs[attrName]);
-                                    }
-
-                                    if (valuesForAttribute.Count > 0)
-                                    {
-                                        bool allSame = true;
-                                        object firstValue = valuesForAttribute[0];
-                                        foreach (var value in valuesForAttribute)
-                                        {
-                                            if (!AreAttributeValuesEqualForExport(firstValue, value))
-                                            {
-                                                allSame = false;
-                                                break;
-                                            }
-                                        }
-
-                                        if (allSame)
-                                        {
-                                            mergedValue = FormatAttributeValue(attrName, firstValue);
-                                        }
-                                    }
-
-                                    categories[categoryId].Attributes[attrName] = mergedValue!;
-                                }
-
-                                personCategoryAttributesSet = true;
-                            }
                         }
 
                         // Find matching waypoint
@@ -716,89 +517,6 @@ namespace AOLTv1.Services
                             annotation.InteractingObject = matchingWaypoint.InteractingObject;
                         }
 
-                        // Person attributes
-                        if (box.Label == "person")
-                        {
-                            var currentAttributes = personAttributeStore.GetAllAttributes(box.PersonId, box.FrameIndex, waypointMarkers, currentVideoFile);
-
-                            var mergedAttributes = new Dictionary<string, object>();
-                            if (currentAttributes != null)
-                            {
-                                foreach (var kvp in currentAttributes)
-                                {
-                                    string attrName = kvp.Key;
-                                    object attrValue = kvp.Value;
-
-                                    if (attrName == "Weight" || attrName == "BodyPosture")
-                                    {
-                                        if (!mergedAttributes.ContainsKey("Weight/BodyShape"))
-                                            mergedAttributes["Weight/BodyShape"] = attrValue;
-                                        else if (attrValue != null && attrName == "BodyPosture")
-                                            mergedAttributes["Weight/BodyShape"] = attrValue;
-                                    }
-                                    else
-                                    {
-                                        mergedAttributes[attrName] = attrValue;
-                                    }
-                                }
-                            }
-
-                            var formattedAttributes = new Dictionary<string, object>();
-                            foreach (var kvp in mergedAttributes)
-                            {
-                                formattedAttributes[kvp.Key] = FormatAttributeValue(kvp.Key, kvp.Value)!;
-                            }
-
-                            bool isInitialFrame = matchingWaypoint != null && box.FrameIndex == matchingWaypoint.EntryFrame;
-
-                            if (isInitialFrame)
-                            {
-                                var allAttributes = new Dictionary<string, object>();
-                                foreach (string attrName in AllAttributeNames)
-                                {
-                                    allAttributes[attrName] = formattedAttributes.ContainsKey(attrName)
-                                        ? formattedAttributes[attrName] : null!;
-                                }
-                                annotation.PersonAttributes = allAttributes;
-
-                                previousAttributesByPerson[box.PersonId] = new Dictionary<string, object>(allAttributes);
-                            }
-                            else
-                            {
-                                var changedAttributes = new Dictionary<string, object>();
-                                Dictionary<string, object>? previousAttributes = null;
-                                if (previousAttributesByPerson.ContainsKey(box.PersonId))
-                                    previousAttributes = previousAttributesByPerson[box.PersonId];
-
-                                foreach (string attrName in AllAttributeNames)
-                                {
-                                    object? currentValue = formattedAttributes.ContainsKey(attrName) ? formattedAttributes[attrName] : null;
-                                    object? previousValue = previousAttributes != null && previousAttributes.ContainsKey(attrName) ? previousAttributes[attrName] : null;
-
-                                    if (!AreAttributeValuesEqualForExport(currentValue, previousValue) && currentValue != null)
-                                    {
-                                        changedAttributes[attrName] = currentValue;
-                                    }
-                                }
-
-                                if (changedAttributes.Count > 0)
-                                    annotation.PersonAttributes = changedAttributes;
-
-                                // Update previous attributes for next frame comparison
-                                if (!previousAttributesByPerson.ContainsKey(box.PersonId))
-                                    previousAttributesByPerson[box.PersonId] = new Dictionary<string, object>();
-
-                                foreach (string attrName in AllAttributeNames)
-                                {
-                                    object? currentValue = formattedAttributes.ContainsKey(attrName) ? formattedAttributes[attrName] : null;
-                                    if (currentValue != null)
-                                        previousAttributesByPerson[box.PersonId][attrName] = currentValue;
-                                    else if (previousAttributesByPerson[box.PersonId].ContainsKey(attrName))
-                                        previousAttributesByPerson[box.PersonId][attrName] = null!;
-                                }
-                            }
-                        }
-
                         annotations.Add(annotation);
                     }
 
@@ -818,8 +536,7 @@ namespace AOLTv1.Services
                     Licenses = new List<object>(),
                     Images = images,
                     Annotations = annotations,
-                    Categories = categories.Values.ToList(),
-                    FailureRanges = waypointFailureRanges
+                    Categories = categories.Values.ToList()
                 };
 
                 var settings = new JsonSerializerSettings
@@ -884,37 +601,6 @@ namespace AOLTv1.Services
             if (fps <= 0) return "00:00:00";
             TimeSpan time = TimeSpan.FromSeconds(frameIndex / fps);
             return time.ToString(@"hh\:mm\:ss");
-        }
-
-        /// <summary>
-        /// Formats an attribute value according to its type (single-select vs multi-select).
-        /// </summary>
-        private static object? FormatAttributeValue(string attrName, object? attrValue)
-        {
-            if (attrValue == null) return null;
-
-            if (PersonAttributeStore.singleSelectAttributeNames.Contains(attrName))
-            {
-                if (attrValue is List<string> listValue && listValue.Count > 0)
-                    return listValue[0];
-                else if (attrValue is string[] arrayValue && arrayValue.Length > 0)
-                    return arrayValue[0];
-                else if (attrValue is string stringValue)
-                    return stringValue;
-                else
-                    return attrValue.ToString();
-            }
-            else
-            {
-                if (attrValue is List<string> listValue)
-                    return listValue.Count > 0 ? listValue : null;
-                else if (attrValue is string[] arrayValue)
-                    return arrayValue.Length > 0 ? arrayValue.ToList() : null;
-                else if (attrValue is string stringValue)
-                    return new List<string> { stringValue };
-                else
-                    return new List<string> { attrValue.ToString()! };
-            }
         }
 
         #endregion

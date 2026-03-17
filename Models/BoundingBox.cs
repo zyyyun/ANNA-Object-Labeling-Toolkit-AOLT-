@@ -1,6 +1,6 @@
 namespace AOLTv1.Models
 {
-    public enum UndoActionType { AddBox, RemoveBox, ModifyBox, Tracking }
+    public enum UndoActionType { AddBox, RemoveBox, ModifyBox }
 
     public class UndoAction
     {
@@ -9,7 +9,6 @@ namespace AOLTv1.Models
         public Rectangle OriginalRectangle { get; set; }
         public string OriginalLabel { get; set; }
         public int OriginalObjectId { get; set; }
-        public List<BoundingBox> TrackedBoxes { get; set; }
     }
 
     public enum ResizeHandle
@@ -42,7 +41,6 @@ namespace AOLTv1.Models
         public string VehicleName { get; set; }
         public string EventName { get; set; }
         public bool IsDeleted { get; set; }
-        public Dictionary<string, object> PersonAttributes { get; set; }
     }
 
     public class SubtitleEntry
