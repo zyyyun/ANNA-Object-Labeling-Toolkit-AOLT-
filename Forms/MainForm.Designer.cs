@@ -53,7 +53,6 @@ namespace AOLTv1.Forms
             this.btnEntry = new System.Windows.Forms.Button();
             this.btnExit = new System.Windows.Forms.Button();
             this.btnToggleSubtitle = new System.Windows.Forms.Button();
-            this.btnToggleAttributeView = new System.Windows.Forms.Button();
             this.panelTimeline = new System.Windows.Forms.Panel();
 
             // Right Sidebar (Info Panel)
@@ -297,7 +296,6 @@ namespace AOLTv1.Forms
             this.panelVideoControls.Controls.Add(this.btnEntry);
             this.panelVideoControls.Controls.Add(this.btnExit);
             this.panelVideoControls.Controls.Add(this.btnToggleSubtitle);
-            this.panelVideoControls.Controls.Add(this.btnToggleAttributeView);
             this.panelVideoControls.Controls.Add(this.panelTimeline);
             this.panelVideoControls.Resize += new System.EventHandler(this.panelVideoControls_Resize);
 
@@ -341,7 +339,7 @@ namespace AOLTv1.Forms
 
             // Entry/Exit buttons
             this.btnEntry.Text = "Entry";
-            this.btnEntry.Location = new System.Drawing.Point(710, 16);
+            this.btnEntry.Location = new System.Drawing.Point(480, 16);
             this.btnEntry.Size = new System.Drawing.Size(110, 40);
             this.btnEntry.BackColor = System.Drawing.Color.FromArgb(0, 120, 212);
             this.btnEntry.ForeColor = System.Drawing.Color.White;
@@ -351,7 +349,7 @@ namespace AOLTv1.Forms
             this.btnEntry.Click += new System.EventHandler(this.btnEntry_Click);
 
             this.btnExit.Text = "Exit";
-            this.btnExit.Location = new System.Drawing.Point(830, 16);
+            this.btnExit.Location = new System.Drawing.Point(600, 16);
             this.btnExit.Size = new System.Drawing.Size(110, 40);
             this.btnExit.BackColor = System.Drawing.Color.FromArgb(0, 120, 212);
             this.btnExit.ForeColor = System.Drawing.Color.White;
@@ -371,18 +369,6 @@ namespace AOLTv1.Forms
             this.btnToggleSubtitle.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.btnToggleSubtitle.TabStop = false;
             this.btnToggleSubtitle.Click += new System.EventHandler(this.btnToggleSubtitle_Click);
-
-            // btnToggleAttributeView
-            this.btnToggleAttributeView.Text = "속성값 조회";
-            this.btnToggleAttributeView.Location = new System.Drawing.Point(480, 16);
-            this.btnToggleAttributeView.Size = new System.Drawing.Size(150, 40);
-            this.btnToggleAttributeView.BackColor = System.Drawing.Color.FromArgb(62, 62, 66);
-            this.btnToggleAttributeView.ForeColor = System.Drawing.Color.FromArgb(212, 212, 212);
-            this.btnToggleAttributeView.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnToggleAttributeView.FlatAppearance.BorderSize = 0;
-            this.btnToggleAttributeView.Font = new System.Drawing.Font("Segoe UI", 9F);
-            this.btnToggleAttributeView.TabStop = false;
-            this.btnToggleAttributeView.Click += new System.EventHandler(this.btnToggleAttributeView_Click);
 
             //
             // panelTimeline
@@ -783,7 +769,6 @@ namespace AOLTv1.Forms
         private System.Windows.Forms.Button btnEntry;
         private System.Windows.Forms.Button btnExit;
         private System.Windows.Forms.Button btnToggleSubtitle;
-        private System.Windows.Forms.Button btnToggleAttributeView;
         private System.Windows.Forms.Panel panelTimeline;
 
         // Right Sidebar

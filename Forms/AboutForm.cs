@@ -108,8 +108,7 @@ namespace AOLTv1.Forms
             {
                 ("Space", "재생/정지"),
                 ("E", "Entry 마커"),
-                ("X", "Exit 마커 (웨이포인트 생성 시 자동 관성 추적)"),
-                ("Shift+T", "관성 추적 재실행 (현재 프레임~Exit)"),
+                ("X", "Exit 마커 (웨이포인트 생성)"),
                 ("F1 / F2 / F3", "Person / Vehicle / Event 선택"),
                 ("Ctrl+1 ~ Ctrl+0", "ID 지정 (1~10)"),
                 ("Ctrl+Z", "실행취소"),
@@ -117,12 +116,8 @@ namespace AOLTv1.Forms
                 ("Delete", "선택된 박스 삭제"),
                 ("A", "선택 모드"),
                 ("D", "그리기 모드"),
-                ("P", "속성 편집"),
                 ("\u2190 / \u2192", "이전/다음 프레임 이동"),
                 ("\u2191 / \u2193", "10프레임 앞/뒤 이동"),
-                ("NumPad 1~3", "Occlusion 빠른 선택"),
-                ("NumPad 4~6", "BodyView 빠른 선택"),
-                ("NumPad 7~9", "ActionType 빠른 선택"),
             };
 
             foreach (var (key, desc) in shortcuts)
