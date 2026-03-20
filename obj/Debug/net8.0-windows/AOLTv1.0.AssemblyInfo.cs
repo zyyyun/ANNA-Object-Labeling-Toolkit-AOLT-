@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AOLTv1")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+35e207660beef42a196220cddbb4fe5d3262d904")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e215e5a1ce0b58c6e9aac422d863a9d7f373844e")]
 [assembly: System.Reflection.AssemblyProductAttribute("AOLT - ANNA Object Labeling Tool")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AOLTv1")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
