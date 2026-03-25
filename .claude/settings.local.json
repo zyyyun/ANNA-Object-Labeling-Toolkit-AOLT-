@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(find C:UsersANNAAOLTv1.0 -type d -not -path */bin/* -not -path */obj/* -not -path */.git/* -not -path */.vs/* -not -path */.vscode/*)",
-      "Bash(dotnet build:*)"
-    ]
-  }
-}
