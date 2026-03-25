@@ -1,4 +1,5 @@
 using AOLTv1.Forms;
+using AOLTv1.Services;
 
 namespace AOLTv1
 {
@@ -8,6 +9,14 @@ namespace AOLTv1
         static void Main()
         {
             ApplicationConfiguration.Initialize();
+
+            if (!LicenseService.IsAuthorized(out string denyReason))
+            {
+                MessageBox.Show(denyReason, "AOLT - 인증 오류",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
             Application.Run(new MainForm());
         }
     }
