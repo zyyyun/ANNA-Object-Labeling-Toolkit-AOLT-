@@ -6,7 +6,6 @@ namespace AOLTv1.Services
     {
         private static readonly DateTime ExpirationDate = new DateTime(2026, 5, 31, 23, 59, 59);
 
-        // TODO: 실제 MAC 주소 4개로 교체 필요
         private static readonly HashSet<string> AllowedMacAddresses = new(StringComparer.OrdinalIgnoreCase)
         {
             "2C-F0-5D-B5-7C-EE", // IFEZ PC 1

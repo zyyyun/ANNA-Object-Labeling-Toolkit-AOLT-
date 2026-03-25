@@ -170,6 +170,9 @@ namespace AOLTv1.Forms
 
             this.Resize += MainForm_Resize;
             UpdateMaximizeButtonIcon();
+
+            // 초기 레이아웃에서도 타임라인 너비 적용
+            panelVideoControls_Resize(panelVideoControls, EventArgs.Empty);
         }
 
         private void HandleListViewKeyDown(object sender, KeyEventArgs e)
@@ -1448,6 +1451,13 @@ namespace AOLTv1.Forms
             {
                 groupBoxObjectInfo.Location = new System.Drawing.Point(panelVideoControls.Width - groupBoxObjectInfo.Width - 16, 16);
             }
+            // 타임라인 너비를 컨테이너 크기에 맞게 동적으로 조정
+            if (panelVideoControls != null && panelTimeline != null && groupBoxObjectInfo != null)
+            {
+                int newWidth = Math.Max(100, groupBoxObjectInfo.Left - panelTimeline.Left - 8);
+                if (panelTimeline.Width != newWidth)
+                    panelTimeline.Width = newWidth;
+            }
         }
 
         #endregion
@@ -2052,6 +2062,34 @@ namespace AOLTv1.Forms
                 }
             }
 
+            // Ctrl+1~4: vehicle 클래스 선택 (car/motorcycle/e_scooter/bicycle)
+            if (e.Control && !e.Shift && !e.Alt && (currentSelectedLabel == "vehicle" || (selectedBox != null && selectedBox.Label == "vehicle")))
+            {
+                int? classId = GetIdFromKey(e.KeyCode, 0);
+                if (classId.HasValue && classId.Value >= 1 && classId.Value <= 4)
+                {
+                    if (selectedBox != null && selectedBox.Label == "vehicle")
+                        ChangeBoxIdWithinWaypoint(selectedBox, classId.Value);
+                    else
+                        currentAssignedId = classId.Value;
+                    e.Handled = true; return;
+                }
+            }
+
+            // Ctrl+1~4: event 클래스 선택 (contact/exchange/board/final_exchange)
+            if (e.Control && !e.Shift && !e.Alt && (currentSelectedLabel == "event" || (selectedBox != null && selectedBox.Label == "event")))
+            {
+                int? classId = GetIdFromKey(e.KeyCode, 0);
+                if (classId.HasValue && classId.Value >= 1 && classId.Value <= 4)
+                {
+                    if (selectedBox != null && selectedBox.Label == "event")
+                        ChangeBoxIdWithinWaypoint(selectedBox, classId.Value);
+                    else
+                        currentAssignedId = classId.Value;
+                    e.Handled = true; return;
+                }
+            }
+
             if (!_videoService.IsVideoLoaded) return;
 
             if (e.KeyCode == Keys.Tab) { CycleSelection(e.Shift); e.Handled = true; return; }
@@ -2155,6 +2193,8 @@ namespace AOLTv1.Forms
             btnLabelPerson.FlatAppearance.BorderSize = 2;
             btnLabelVehicle.FlatAppearance.BorderSize = 1;
             btnLabelEvent.FlatAppearance.BorderSize = 1;
+            if (selectedBox != null && selectedBox.Label != "person")
+                ChangeBoxLabel(selectedBox, "person");
             UpdateBboxListDisplay();
         }
 
@@ -2165,6 +2205,8 @@ namespace AOLTv1.Forms
             btnLabelPerson.FlatAppearance.BorderSize = 1;
             btnLabelVehicle.FlatAppearance.BorderSize = 2;
             btnLabelEvent.FlatAppearance.BorderSize = 1;
+            if (selectedBox != null && selectedBox.Label != "vehicle")
+                ChangeBoxLabel(selectedBox, "vehicle");
             UpdateBboxListDisplay();
         }
 
@@ -2175,7 +2217,21 @@ namespace AOLTv1.Forms
             btnLabelPerson.FlatAppearance.BorderSize = 1;
             btnLabelVehicle.FlatAppearance.BorderSize = 1;
             btnLabelEvent.FlatAppearance.BorderSize = 2;
+            if (selectedBox != null && selectedBox.Label != "event")
+                ChangeBoxLabel(selectedBox, "event");
             UpdateBboxListDisplay();
+        }
+
+        // 선택된 박스의 레이블 타입 변경 (person/vehicle/event)
+        private void ChangeBoxLabel(BoundingBox box, string newLabel)
+        {
+            box.Label = newLabel;
+            box.PersonId = newLabel == "person" ? currentAssignedId : 0;
+            box.VehicleId = newLabel == "vehicle" ? 1 : 0;
+            box.EventId = newLabel == "event" ? 1 : 0;
+            InvalidateBoxCache();
+            UpdateObjectInfo(box);
+            pictureBoxVideo.Invalidate();
         }
 
         private void TogglePersonPanel(object sender, EventArgs e)
@@ -2351,28 +2407,72 @@ namespace AOLTv1.Forms
             int y = 2;
             foreach (var box in boxes)
             {
-                int boxId = GetBoxId(box);
-                string text = GetCategoryName(box.Label, boxId);
+                BoundingBox capturedBox = box;
+                int boxId = GetBoxId(capturedBox);
+                string text = GetCategoryName(capturedBox.Label, boxId);
                 var itemPanel = new Panel
                 {
                     Location = new System.Drawing.Point(2, y),
                     Size = new System.Drawing.Size(panel.Width - 20, 25),
                     BackColor = DarkTheme.Panel,
                     BorderStyle = BorderStyle.FixedSingle,
-                    Tag = box,
+                    Tag = capturedBox,
                     Cursor = Cursors.Hand
                 };
-                var label = new Label
+
+                if (capturedBox.Label == "vehicle" || capturedBox.Label == "event")
                 {
-                    Text = text, AutoSize = false, Dock = DockStyle.Fill,
-                    ForeColor = DarkTheme.TextPrimary,
-                    Font = new Font("Segoe UI", 8F),
-                    TextAlign = ContentAlignment.MiddleLeft,
-                    Padding = new Padding(5, 0, 0, 0)
-                };
-                label.Click += (s, ev) => { selectedBox = box; UpdateObjectInfo(box); HighlightSelectedBoxInSidebar(); pictureBoxVideo.Invalidate(); };
-                itemPanel.Click += (s, ev) => { selectedBox = box; UpdateObjectInfo(box); HighlightSelectedBoxInSidebar(); pictureBoxVideo.Invalidate(); };
-                itemPanel.Controls.Add(label);
+                    // vehicle/event: ComboBox로 클래스 직접 변경 가능
+                    string[] options = capturedBox.Label == "vehicle"
+                        ? new[] { "car", "motorcycle", "e_scooter", "bicycle" }
+                        : new[] { "contact", "exchange", "board", "final_exchange" };
+                    var combo = new ComboBox
+                    {
+                        Dock = DockStyle.Fill,
+                        DropDownStyle = ComboBoxStyle.DropDownList,
+                        BackColor = DarkTheme.Panel,
+                        ForeColor = DarkTheme.TextPrimary,
+                        Font = new Font("Segoe UI", 8F),
+                        FlatStyle = FlatStyle.Flat,
+                        TabStop = false
+                    };
+                    foreach (var opt in options) combo.Items.Add(opt);
+                    int selIdx = Array.IndexOf(options, text);
+                    combo.SelectedIndex = selIdx >= 0 ? selIdx : 0;
+                    // 이벤트는 초기값 설정 후에 등록해야 spurious 발화 방지
+                    combo.Click += (s, ev) =>
+                    {
+                        selectedBox = capturedBox;
+                        UpdateObjectInfo(capturedBox);
+                        HighlightSelectedBoxInSidebar();
+                        pictureBoxVideo.Invalidate();
+                    };
+                    combo.SelectedIndexChanged += (s, ev) =>
+                    {
+                        int newClassId = combo.SelectedIndex + 1;
+                        if (newClassId != GetBoxId(capturedBox))
+                        {
+                            selectedBox = capturedBox;
+                            ChangeBoxIdWithinWaypoint(capturedBox, newClassId);
+                        }
+                    };
+                    itemPanel.Controls.Add(combo);
+                }
+                else
+                {
+                    var label = new Label
+                    {
+                        Text = text, AutoSize = false, Dock = DockStyle.Fill,
+                        ForeColor = DarkTheme.TextPrimary,
+                        Font = new Font("Segoe UI", 8F),
+                        TextAlign = ContentAlignment.MiddleLeft,
+                        Padding = new Padding(5, 0, 0, 0)
+                    };
+                    label.Click += (s, ev) => { selectedBox = capturedBox; UpdateObjectInfo(capturedBox); HighlightSelectedBoxInSidebar(); pictureBoxVideo.Invalidate(); };
+                    itemPanel.Click += (s, ev) => { selectedBox = capturedBox; UpdateObjectInfo(capturedBox); HighlightSelectedBoxInSidebar(); pictureBoxVideo.Invalidate(); };
+                    itemPanel.Controls.Add(label);
+                }
+
                 panel.Controls.Add(itemPanel);
                 y += 27;
             }
