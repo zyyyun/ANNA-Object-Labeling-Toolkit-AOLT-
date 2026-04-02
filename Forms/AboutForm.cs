@@ -41,7 +41,7 @@ namespace AOLTv1.Forms
             // 부제
             Label lblSubtitle = new Label
             {
-                Text = "ANNA Object Labeling Tool",
+                Text = "ANNA Object Labeling Toolkit",
                 Font = new Font("Segoe UI", 11F),
                 ForeColor = DarkTheme.TextSecondary,
                 TextAlign = ContentAlignment.MiddleCenter,
@@ -52,7 +52,8 @@ namespace AOLTv1.Forms
             this.Controls.Add(lblSubtitle);
 
             // 버전 정보
-            string version = Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "1.0.0.0";
+            var ver = Assembly.GetEntryAssembly()?.GetName().Version;
+            string version = ver != null ? $"{ver.Major}.{ver.Minor}" : "1.0";
             Label lblVersion = new Label
             {
                 Text = $"Version {version}",
@@ -149,7 +150,7 @@ namespace AOLTv1.Forms
             // 저작권
             Label lblCopyright = new Label
             {
-                Text = $"\u00a9 {DateTime.Now.Year} ETRI. All rights reserved.",
+                Text = $"\u00a9 {DateTime.Now.Year} AOLT. All rights reserved.",
                 Font = new Font("Segoe UI", 8F),
                 ForeColor = DarkTheme.TextSecondary,
                 TextAlign = ContentAlignment.MiddleLeft,
