@@ -888,7 +888,7 @@ namespace AOLTv1.Forms
             listViewEventWaypoints.Items.Clear();
             foreach (var wp in waypointMarkers.Where(w => w.Label == "event").OrderBy(w => w.EntryFrame))
             {
-                string[] eventNames = { "contact", "exchange", "board", "final_exchange" };
+                string[] eventNames = { "event_hazard", "event_accident", "event_damage", "event_fire", "event_intrusion", "event_leak", "event_failure", "event_lost_object", "event_fall", "event_abnormal_behavior" };
                 string eventName = wp.ObjectId >= 1 && wp.ObjectId <= eventNames.Length ? eventNames[wp.ObjectId - 1] : $"event_{wp.ObjectId}";
                 string timeRange = $"{wp.EntryTime}~{wp.ExitTime}";
                 var item = new ListViewItem(new[] { eventName, timeRange, wp.InteractingObject ?? "" });
@@ -2076,11 +2076,11 @@ namespace AOLTv1.Forms
                 }
             }
 
-            // Ctrl+1~4: event 클래스 선택 (contact/exchange/board/final_exchange)
+            // Ctrl+1~0: event 클래스 선택 (event_hazard..event_abnormal_behavior)
             if (e.Control && !e.Shift && !e.Alt && (currentSelectedLabel == "event" || (selectedBox != null && selectedBox.Label == "event")))
             {
                 int? classId = GetIdFromKey(e.KeyCode, 0);
-                if (classId.HasValue && classId.Value >= 1 && classId.Value <= 4)
+                if (classId.HasValue && classId.Value >= 1 && classId.Value <= 10)
                 {
                     if (selectedBox != null && selectedBox.Label == "event")
                         ChangeBoxIdWithinWaypoint(selectedBox, classId.Value);
@@ -2304,7 +2304,7 @@ namespace AOLTv1.Forms
         {
             if (label == "person") return $"person_{boxId:D2}";
             if (label == "vehicle") return boxId switch { 1 => "car", 2 => "motorcycle", 3 => "e_scooter", 4 => "bicycle", _ => "car" };
-            if (label == "event") return boxId switch { 1 => "contact", 2 => "exchange", 3 => "board", 4 => "final_exchange", _ => "contact" };
+            if (label == "event") return boxId switch { 1 => "event_hazard", 2 => "event_accident", 3 => "event_damage", 4 => "event_fire", 5 => "event_intrusion", 6 => "event_leak", 7 => "event_failure", 8 => "event_lost_object", 9 => "event_fall", 10 => "event_abnormal_behavior", _ => "event_hazard" };
             return $"{label}_{boxId:D2}";
         }
 
@@ -2425,7 +2425,7 @@ namespace AOLTv1.Forms
                     // vehicle/event: ComboBox로 클래스 직접 변경 가능
                     string[] options = capturedBox.Label == "vehicle"
                         ? new[] { "car", "motorcycle", "e_scooter", "bicycle" }
-                        : new[] { "contact", "exchange", "board", "final_exchange" };
+                        : new[] { "event_hazard", "event_accident", "event_damage", "event_fire", "event_intrusion", "event_leak", "event_failure", "event_lost_object", "event_fall", "event_abnormal_behavior" };
                     var combo = new ComboBox
                     {
                         Dock = DockStyle.Fill,

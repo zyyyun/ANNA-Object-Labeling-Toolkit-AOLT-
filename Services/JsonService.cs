@@ -24,8 +24,10 @@ namespace AOLTv1.Services
             // Vehicle categories (21~24)
             {"car", 21}, {"motorcycle", 22}, {"e_scooter", 23}, {"bicycle", 24},
 
-            // Event categories (25~28)
-            {"contact", 25}, {"exchange", 26}, {"board", 27}, {"final_exchange", 28}
+            // Event categories (25~34)
+            {"event_hazard", 25}, {"event_accident", 26}, {"event_damage", 27}, {"event_fire", 28},
+            {"event_intrusion", 29}, {"event_leak", 30}, {"event_failure", 31}, {"event_lost_object", 32},
+            {"event_fall", 33}, {"event_abnormal_behavior", 34}
         };
 
         private static readonly Color[] MarkerColors = new Color[]
@@ -58,7 +60,7 @@ namespace AOLTv1.Services
 
             if (label == "person") return Math.Min(boxId, 20);
             if (label == "vehicle") return Math.Min(21 + (boxId - 1), 24);
-            if (label == "event") return Math.Min(25 + (boxId - 1), 28);
+            if (label == "event") return Math.Min(25 + (boxId - 1), 34);
 
             return boxId;
         }
@@ -84,11 +86,17 @@ namespace AOLTv1.Services
             {
                 return boxId switch
                 {
-                    1 => "contact",
-                    2 => "exchange",
-                    3 => "board",
-                    4 => "final_exchange",
-                    _ => "contact"
+                    1 => "event_hazard",
+                    2 => "event_accident",
+                    3 => "event_damage",
+                    4 => "event_fire",
+                    5 => "event_intrusion",
+                    6 => "event_leak",
+                    7 => "event_failure",
+                    8 => "event_lost_object",
+                    9 => "event_fall",
+                    10 => "event_abnormal_behavior",
+                    _ => "event_hazard"
                 };
             }
 
@@ -263,7 +271,7 @@ namespace AOLTv1.Services
                         label = "person";
                     else if (catId >= 21 && catId <= 24)
                         label = "vehicle";
-                    else if (catId >= 25 && catId <= 28)
+                    else if (catId >= 25 && catId <= 34)
                         label = "event";
                     else if (result.CategoryMap.ContainsKey(catId))
                     {
@@ -271,8 +279,7 @@ namespace AOLTv1.Services
                         if (categoryName.Contains("car") || categoryName.Contains("motorcycle") ||
                             categoryName.Contains("scooter") || categoryName.Contains("bicycle"))
                             label = "vehicle";
-                        else if (categoryName.Contains("contact") || categoryName.Contains("exchange") ||
-                                 categoryName.Contains("board") || categoryName.Contains("final"))
+                        else if (categoryName.StartsWith("event_"))
                             label = "event";
                         else if (categoryName.StartsWith("person"))
                             label = "person";
