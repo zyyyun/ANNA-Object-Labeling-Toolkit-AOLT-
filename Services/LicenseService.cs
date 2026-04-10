@@ -12,6 +12,7 @@ namespace AOLTv1.Services
             "2C-F0-5D-B5-7C-71", // IFEZ PC 2
             "F0-2F-74-32-33-77", // 본인 PC
             "D8-5E-D3-94-B4-F5", // 박연구원 PC
+            "E8-84-A5-72-9F-7A" // 신규 1
         };
 
         public static bool IsAuthorized(out string denyReason)
