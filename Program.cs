@@ -1,6 +1,6 @@
-using AOLTv1.Forms;
+using ASLTv1.Forms;
 
-namespace AOLTv1
+namespace ASLTv1
 {
     internal static class Program
     {

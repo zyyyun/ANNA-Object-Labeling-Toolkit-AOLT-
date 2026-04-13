@@ -2,9 +2,9 @@ using System;
 using System.Drawing;
 using System.Reflection;
 using System.Windows.Forms;
-using AOLTv1.Theme;
+using ASLTv1.Theme;
 
-namespace AOLTv1.Forms
+namespace ASLTv1.Forms
 {
     public class AboutForm : Form
     {
@@ -15,7 +15,7 @@ namespace AOLTv1.Forms
 
         private void InitializeComponent()
         {
-            this.Text = "AOLT 정보";
+            this.Text = "ASLT 정보";
             this.Size = new Size(560, 620);
             this.StartPosition = FormStartPosition.CenterParent;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -28,7 +28,7 @@ namespace AOLTv1.Forms
             // 프로그램 이름
             Label lblTitle = new Label
             {
-                Text = "AOLT v1.0",
+                Text = "ASLT v1.0",
                 Font = new Font("Segoe UI", 20F, FontStyle.Bold),
                 ForeColor = DarkTheme.Accent,
                 TextAlign = ContentAlignment.MiddleCenter,
@@ -41,7 +41,7 @@ namespace AOLTv1.Forms
             // 부제
             Label lblSubtitle = new Label
             {
-                Text = "ANNA Object Labeling Toolkit",
+                Text = "ANNA Synthetic data Labeling Toolkit",
                 Font = new Font("Segoe UI", 11F),
                 ForeColor = DarkTheme.TextSecondary,
                 TextAlign = ContentAlignment.MiddleCenter,
@@ -160,7 +160,7 @@ namespace AOLTv1.Forms
             // 저작권
             Label lblCopyright = new Label
             {
-                Text = $"\u00a9 {DateTime.Now.Year} AOLT. All rights reserved.",
+                Text = $"\u00a9 {DateTime.Now.Year} ASLT. All rights reserved.",
                 Font = new Font("Segoe UI", 8F),
                 ForeColor = DarkTheme.TextSecondary,
                 TextAlign = ContentAlignment.MiddleLeft,

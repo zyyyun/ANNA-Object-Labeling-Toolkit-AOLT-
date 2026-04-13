@@ -1,4 +1,4 @@
-namespace AOLTv1.Forms
+namespace ASLTv1.Forms
 {
     partial class MainForm
     {
@@ -102,7 +102,7 @@ namespace AOLTv1.Forms
             this.panelHeader.Controls.Add(this.btnClose);
 
             // Title
-            this.labelTitle.Text = "AOLT v1.0";
+            this.labelTitle.Text = "ASLT v1.0";
             this.labelTitle.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
             this.labelTitle.ForeColor = System.Drawing.Color.FromArgb(212, 212, 212);
             this.labelTitle.Location = new System.Drawing.Point(15, 12);
@@ -723,7 +723,7 @@ namespace AOLTv1.Forms
             this.Controls.Add(this.panelHeader);
             this.KeyPreview = true;
             this.Name = "MainForm";
-            this.Text = "AOLT v1.0 - ANNA Object Labeling Tool";
+            this.Text = "ASLT v1.0 - ANNA Synthetic data Labeling Toolkit";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.MainForm_KeyDown);
             this.Load += new System.EventHandler(this.MainForm_Load);

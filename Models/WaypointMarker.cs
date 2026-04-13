@@ -1,4 +1,4 @@
-namespace AOLTv1.Models
+namespace ASLTv1.Models
 {
     public class WaypointMarker
     {

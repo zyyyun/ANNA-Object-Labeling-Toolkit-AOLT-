@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace AOLTv1.Models
+namespace ASLTv1.Models
 {
     #region JSON Serialization Classes (COCO Format)
 

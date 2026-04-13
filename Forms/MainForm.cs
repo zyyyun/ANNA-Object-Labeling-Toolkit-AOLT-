@@ -10,12 +10,12 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 using OpenCvSharp;
 using OpenCvSharp.Extensions;
-using AOLTv1.Models;
-using AOLTv1.Services;
-using AOLTv1.Helpers;
-using AOLTv1.Theme;
+using ASLTv1.Models;
+using ASLTv1.Services;
+using ASLTv1.Helpers;
+using ASLTv1.Theme;
 
-namespace AOLTv1.Forms
+namespace ASLTv1.Forms
 {
     public enum DrawMode { Select, Draw }
 
@@ -260,7 +260,7 @@ namespace AOLTv1.Forms
                 }
 
                 UpdateTimeLabels();
-                labelTitle.Text = $"AOLT v1.0 - {Path.GetFileName(filePath)}";
+                labelTitle.Text = $"ASLT v1.0 - {Path.GetFileName(filePath)}";
 
                 this.Focus();
                 this.Activate();

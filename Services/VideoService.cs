@@ -3,9 +3,9 @@ using OpenCvSharp;
 using OpenCvSharp.Extensions;
 using FFMpegCore;
 using FFMpegCore.Enums;
-using AOLTv1.Models;
+using ASLTv1.Models;
 
-namespace AOLTv1.Services
+namespace ASLTv1.Services
 {
     /// <summary>
     /// Manages video capture lifecycle, frame loading, playback, and SRT subtitle extraction.
