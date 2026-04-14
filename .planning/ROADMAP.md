@@ -1,0 +1,105 @@
+# Roadmap: AOLT GS인증 1등급
+
+## Overview
+
+GS인증 1등급(ISO/IEC 25023 8대 품질 특성) 통과를 위한 품질 개선 로드맵. 기존 구현된 기능을 결함 없이 동작하도록 개선하되 새 기능은 추가하지 않는다. 로그 인프라를 먼저 구축하고(Phase 1), 안정성·기능 정확성·성능·설치 환경 순으로 개선한 뒤, 바이너리가 확정된 후 문서를 작성한다(Phase 6).
+
+## Phases
+
+**Phase Numbering:**
+- Integer phases (1, 2, 3): Planned milestone work
+- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+
+Decimal phases appear between their surrounding integers in numeric order.
+
+- [ ] **Phase 1: 로그 인프라** - 파일 기반 구조화 로그 및 감사 추적 시스템 구축
+- [ ] **Phase 2: 안정성 기반** - 비정상 종료·리소스 누수·레이스 컨디션 제거
+- [ ] **Phase 3: 기능 정확성 + 보안** - 핵심 버그 수정, COCO 정합성, KISA 보안 강화
+- [ ] **Phase 4: 성능 + 사용성** - 조회 최적화, UI 피드백 일관성 확보
+- [ ] **Phase 5: 이식성** - 클린 환경 설치·실행·제거 보장
+- [ ] **Phase 6: 문서화** - 잠긴 바이너리 기준 제품설명서·사용자취급설명서 작성
+
+## Phase Details
+
+### Phase 1: 로그 인프라
+**Goal**: 애플리케이션 전반에 파일 기반 구조화 로그가 기록되고 감사 추적이 가능하다
+**Depends on**: Nothing (first phase)
+**Requirements**: MAINT-01, SECU-02, SECU-03
+**Success Criteria** (what must be TRUE):
+  1. 앱 시작·종료·저장·라이선스 오류 등 주요 이벤트가 날짜별 로그 파일에 기록된다
+  2. 로그 레벨(Debug/Info/Warning/Error)이 구분되어 기록된다
+  3. 감사 로그에 MAC 주소 원문이 저장되지 않고 해싱 또는 마스킹 처리된다
+  4. 로그 파일이 날짜별로 로테이션되어 지정 디렉토리에 생성된다
+**Plans**: TBD
+
+### Phase 2: 안정성 기반
+**Goal**: 비정상 종료, 리소스 누수, 레이스 컨디션이 제거되어 앱이 안정적으로 동작한다
+**Depends on**: Phase 1
+**Requirements**: RELI-01, RELI-02, RELI-03, RELI-04, PERF-02, PERF-03
+**Success Criteria** (what must be TRUE):
+  1. 처리되지 않은 예외가 발생해도 앱이 비정상 종료되지 않고 오류 메시지를 표시한다
+  2. 영상을 반복 열고 닫아도 메모리·타이머 누수가 발생하지 않는다
+  3. 빠른 영상 전환 시 레이스 컨디션으로 인한 화면 오류가 발생하지 않는다
+  4. null 참조로 인한 NullReferenceException이 발생하지 않는다
+  5. Undo/Redo 스택이 설정 상한을 초과하지 않는다
+**Plans**: TBD
+
+### Phase 3: 기능 정확성 + 보안
+**Goal**: 핵심 기능 버그가 수정되고 COCO JSON 정합성과 KISA 보안 기준이 충족된다
+**Depends on**: Phase 2
+**Requirements**: FUNC-01, FUNC-02, FUNC-03, FUNC-04, FUNC-05, COMP-01, RELI-05, USAB-03, SECU-01, SECU-04, MAINT-02
+**Success Criteria** (what must be TRUE):
+  1. Vehicle 라벨 드롭다운에서 차량 종류를 선택하고 교체할 수 있다
+  2. 내보낸 COCO JSON의 타임스탬프가 실제 프레임 시간을 반영한다
+  3. 바운딩 박스 좌표가 이미지 경계를 절대 초과하지 않는다
+  4. 라이선스 검증에 SHA-256 + Salt 기반 PBKDF2 해싱이 적용된다
+  5. 손상된 JSON/SRT 파일을 열 때 크래시 없이 사용자 안내 메시지가 표시된다
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 4: 성능 + 사용성
+**Goal**: 프레임 조회 성능이 최적화되고 UI 피드백이 일관되게 동작한다
+**Depends on**: Phase 3
+**Requirements**: PERF-01, COMP-02, USAB-01, USAB-02, USAB-04, USAB-05, MAINT-03
+**Success Criteria** (what must be TRUE):
+  1. 프레임 이동 시 바운딩 박스 조회가 체감 지연 없이 즉시 표시된다
+  2. 모든 툴바 버튼에 마우스를 올리면 툴팁이 나타난다
+  3. 전체 삭제 등 파괴적 작업 실행 전 확인 다이얼로그가 표시된다
+  4. 저장하지 않고 앱을 닫으려 하면 경고 메시지가 표시된다
+  5. Undo/Redo 가능 여부에 따라 버튼이 활성/비활성으로 표시된다
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 5: 이식성
+**Goal**: 명시된 Windows 환경에서 정상 설치·실행·제거가 보장된다
+**Depends on**: Phase 4
+**Requirements**: PORT-01, PORT-02, PORT-03
+**Success Criteria** (what must be TRUE):
+  1. Windows 10/11 클린 환경에서 설치 후 추가 설정 없이 앱이 정상 실행된다
+  2. FFmpeg 또는 .NET Runtime 미설치 시 구체적인 안내 메시지가 표시된다
+  3. 제거 후 레지스트리 잔여 항목 및 파일이 남지 않는다
+**Plans**: TBD
+
+### Phase 6: 문서화
+**Goal**: 잠긴 바이너리와 완전히 일치하는 제품설명서 및 사용자취급설명서가 완성된다
+**Depends on**: Phase 5
+**Requirements**: DOC-01, DOC-02, DOC-03
+**Success Criteria** (what must be TRUE):
+  1. 제품설명서에 버전, 연동 제품 정보, 시스템 요구사항이 명시된다
+  2. 사용자취급설명서에 모든 기능·입력값 유효 범위·오류 메시지가 기술된다
+  3. 문서 내 버전 정보가 실제 프로그램 버전과 일치한다
+**Plans**: TBD
+
+## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 1. 로그 인프라 | 0/TBD | Not started | - |
+| 2. 안정성 기반 | 0/TBD | Not started | - |
+| 3. 기능 정확성 + 보안 | 0/TBD | Not started | - |
+| 4. 성능 + 사용성 | 0/TBD | Not started | - |
+| 5. 이식성 | 0/TBD | Not started | - |
+| 6. 문서화 | 0/TBD | Not started | - |
