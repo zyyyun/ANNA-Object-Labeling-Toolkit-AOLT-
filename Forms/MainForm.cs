@@ -398,12 +398,19 @@ namespace ASLTv1.Forms
                 else
                     currentJsonFile = "";
 
+                // 새 영상 로드 시 이전 라벨링 상태를 항상 초기화
+                boundingBoxes.Clear();
+                waypointMarkers.Clear();
+                selectedBox = null;
+                selectedWaypoint = null;
+                categoryMap = new Dictionary<int, CategoryData>();
+                frameTimestampMap = new Dictionary<int, string>();
+                nextAnnotationId = 1;
+                labelCurrentJsonFile.Text = "";
+
                 if (result.Success)
                 {
-                    boundingBoxes.Clear();
                     boundingBoxes.AddRange(result.BoundingBoxes);
-
-                    waypointMarkers.Clear();
                     waypointMarkers.AddRange(result.WaypointMarkers);
 
                     categoryMap = result.CategoryMap;
