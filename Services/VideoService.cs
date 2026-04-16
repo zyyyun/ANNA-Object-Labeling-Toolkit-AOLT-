@@ -92,7 +92,7 @@ namespace ASLTv1.Services
         /// Opens a video file and reads initial metadata.
         /// Also attempts to load an associated SRT subtitle (external file or embedded).
         /// </summary>
-        public async Task LoadVideoAsync(string filePath)
+        public async Task LoadVideoAsync(string filePath, CancellationToken cancellationToken = default)
         {
             // Release previous capture
             if (videoCapture != null)
@@ -133,6 +133,8 @@ namespace ASLTv1.Services
                 throw new InvalidOperationException("Failed to open video file.");
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             currentVideoFile = filePath;
             totalFrames = (int)videoCapture.Get(VideoCaptureProperties.FrameCount);
             fps = videoCapture.Get(VideoCaptureProperties.Fps);
@@ -144,6 +146,8 @@ namespace ASLTv1.Services
 
             // Attempt to load SRT subtitle
             await LoadSubtitleForVideo(filePath);
+
+            cancellationToken.ThrowIfCancellationRequested();
         }
 
         /// <summary>

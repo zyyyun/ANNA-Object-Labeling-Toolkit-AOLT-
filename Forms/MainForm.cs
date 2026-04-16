@@ -34,6 +34,7 @@ namespace ASLTv1.Forms
 
         private VideoService _videoService;
         private JsonService _jsonService;
+        private CancellationTokenSource _videoLoadCts;
 
         #endregion
 
@@ -241,9 +242,24 @@ namespace ASLTv1.Forms
 
         private async Task LoadVideoWithSubtitle(string filePath)
         {
+            // Cancel any previous in-flight load (RELI-03)
+            _videoLoadCts?.Cancel();
+            _videoLoadCts?.Dispose();
+            _videoLoadCts = new CancellationTokenSource();
+            var token = _videoLoadCts.Token;
+
+            // Stop playback before loading new video (PERF-02)
+            if (isPlaying)
+            {
+                isPlaying = false;
+                btnPlay.Text = "\u25B6";
+                timerPlayback.Stop();
+            }
+
             try
             {
-                await _videoService.LoadVideoAsync(filePath);
+                await _videoService.LoadVideoAsync(filePath, token);
+                token.ThrowIfCancellationRequested();
 
                 if (!_videoService.IsVideoLoaded)
                 {
@@ -274,8 +290,13 @@ namespace ASLTv1.Forms
                     btnPlay_Click(null, EventArgs.Empty);
                 }
             }
+            catch (OperationCanceledException)
+            {
+                Log.Information("[영상 로드] 이전 로드 작업이 취소됨: {FilePath}", filePath);
+            }
             catch (Exception ex)
             {
+                Log.Error(ex, "[영상 로드 오류] {FilePath}", filePath);
                 MessageBox.Show($"비디오 로드 중 오류가 발생했습니다:\n{ex.Message}",
                     "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
