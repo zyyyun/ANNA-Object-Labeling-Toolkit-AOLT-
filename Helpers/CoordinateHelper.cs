@@ -108,5 +108,17 @@ namespace ASLTv1.Helpers
                 bottomRight.Y - topLeft.Y
             );
         }
+
+        /// <summary>
+        /// 바운딩 박스 좌표를 이미지 범위 내로 클램핑합니다.
+        /// </summary>
+        public static Rectangle ClampToImage(Rectangle rect, int imageWidth, int imageHeight)
+        {
+            int x = Math.Max(0, Math.Min(rect.X, imageWidth - 1));
+            int y = Math.Max(0, Math.Min(rect.Y, imageHeight - 1));
+            int w = Math.Min(rect.Width, imageWidth - x);
+            int h = Math.Min(rect.Height, imageHeight - y);
+            return new Rectangle(x, y, Math.Max(1, w), Math.Max(1, h));
+        }
     }
 }

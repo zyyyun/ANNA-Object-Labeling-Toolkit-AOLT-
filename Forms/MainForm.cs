@@ -412,7 +412,7 @@ namespace ASLTv1.Forms
         {
             try
             {
-                var result = await _jsonService.LoadLabelingDataAsync(videoFilePath, _videoService.Fps);
+                var result = await _jsonService.LoadLabelingDataAsync(videoFilePath, _videoService.Fps, _videoService.FrameWidth, _videoService.FrameHeight);
 
                 if (!string.IsNullOrEmpty(result.LoadedFilePath))
                     currentJsonFile = result.LoadedFilePath;
@@ -538,6 +538,14 @@ namespace ASLTv1.Forms
 
             string baseFileName = Path.GetFileNameWithoutExtension(_videoService.CurrentVideoFile);
             string savePath = Path.Combine(saveDir, baseFileName + "_labels.json");
+
+            // 경로 트래버설 방지 검증
+            if (!PathValidator.IsPathSafe(savePath, videoDir))
+            {
+                Log.Warning("[보안] 저장 경로 트래버설 감지: {Path}", savePath);
+                MessageBox.Show("파일 경로가 올바르지 않습니다.", "보안 경고", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
             _jsonService.ExportToJsonExtended(
                 savePath,

@@ -1,6 +1,7 @@
 using Serilog;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using ASLTv1.Helpers;
 using ASLTv1.Models;
 
 namespace ASLTv1.Services
@@ -59,9 +60,9 @@ namespace ASLTv1.Services
             if (CategoryNameToIdMap.ContainsKey(categoryName))
                 return CategoryNameToIdMap[categoryName];
 
-            if (label == "person") return Math.Min(boxId, 20);
-            if (label == "vehicle") return Math.Min(21 + (boxId - 1), 24);
-            if (label == "event") return Math.Min(25 + (boxId - 1), 34);
+            if (label == "person") return Math.Clamp(boxId, 1, 20);
+            if (label == "vehicle") return Math.Clamp(21 + (boxId - 1), 21, 24);
+            if (label == "event") return Math.Clamp(25 + (boxId - 1), 25, 34);
 
             return boxId;
         }
@@ -126,7 +127,15 @@ namespace ASLTv1.Services
             string normalPath = Path.Combine(saveDir, baseFileName + "_labels.json");
 
             if (File.Exists(normalPath))
+            {
+                // 경로 트래버설 방지 검증
+                if (!PathValidator.IsPathSafe(normalPath, videoDir))
+                {
+                    Log.Warning("[보안] 경로 트래버설 감지: {Path}", normalPath);
+                    return null;
+                }
                 return normalPath;
+            }
 
             return null;
         }
@@ -159,6 +168,8 @@ namespace ASLTv1.Services
         public async Task<LoadResult> LoadLabelingDataAsync(
             string videoFilePath,
             double fps,
+            int frameWidth = 0,
+            int frameHeight = 0,
             Action<string>? progressCallback = null)
         {
             var result = new LoadResult();
@@ -378,6 +389,15 @@ namespace ASLTv1.Services
                     waypointIndex++;
                 }
 
+                // 로드된 bbox에 대해 이미지 범위 클램핑 적용
+                if (frameWidth > 0 && frameHeight > 0)
+                {
+                    foreach (var box in result.BoundingBoxes)
+                    {
+                        box.Rectangle = CoordinateHelper.ClampToImage(box.Rectangle, frameWidth, frameHeight);
+                    }
+                }
+
                 result.Success = true;
             }
             catch (OutOfMemoryException oomEx)
@@ -426,10 +446,10 @@ namespace ASLTv1.Services
                 foreach (var frameGroup in frameGroups)
                 {
                     double frameSeconds = frameGroup.Key / fps;
-                    DateTime frameTime = DateTime.Now.AddSeconds(frameSeconds);
+                    TimeSpan frameTimeSpan = TimeSpan.FromSeconds(frameSeconds);
 
                     string? subtitleTimestamp = videoService?.GetSubtitleTimestampForFrame(frameGroup.Key);
-                    string timestamp = subtitleTimestamp ?? frameTime.ToString("yyyy-MM-ddTHH:mm:ss.fff");
+                    string timestamp = subtitleTimestamp ?? frameTimeSpan.ToString(@"hh\:mm\:ss\.fff");
 
                     var imageInfo = new ImageInfo
                     {
@@ -491,16 +511,18 @@ namespace ASLTv1.Services
 
                         double entrySeconds = entryFrame / fps;
                         double exitSeconds = exitFrame / fps;
-                        DateTime entryTime = DateTime.Now.AddSeconds(entrySeconds);
-                        DateTime exitTime = DateTime.Now.AddSeconds(exitSeconds);
+                        TimeSpan entryTimeSpan = TimeSpan.FromSeconds(entrySeconds);
+                        TimeSpan exitTimeSpan = TimeSpan.FromSeconds(exitSeconds);
+
+                        var clampedRect = CoordinateHelper.ClampToImage(box.Rectangle, frameWidth, frameHeight);
 
                         var annotation = new AnnotationData
                         {
                             Id = nextAnnotationId++,
                             ImageId = imageId,
                             CategoryId = categoryId,
-                            Bbox = new int[] { box.Rectangle.X, box.Rectangle.Y, box.Rectangle.Width, box.Rectangle.Height },
-                            Area = box.Rectangle.Width * box.Rectangle.Height,
+                            Bbox = new int[] { clampedRect.X, clampedRect.Y, clampedRect.Width, clampedRect.Height },
+                            Area = clampedRect.Width * clampedRect.Height,
                             Iscrowd = 0,
                             TrackId = boxId,
                             TrackInfo = new TrackInfo
@@ -508,12 +530,12 @@ namespace ASLTv1.Services
                                 Entry = new TrackEntry
                                 {
                                     Frame = entryFrame,
-                                    Timestamp = entryTimestamp ?? entryTime.ToString("yyyy-MM-ddTHH:mm:ss.fff")
+                                    Timestamp = entryTimestamp ?? entryTimeSpan.ToString(@"hh\:mm\:ss\.fff")
                                 },
                                 Exit = new TrackEntry
                                 {
                                     Frame = exitFrame,
-                                    Timestamp = exitTimestamp ?? exitTime.ToString("yyyy-MM-ddTHH:mm:ss.fff")
+                                    Timestamp = exitTimestamp ?? exitTimeSpan.ToString(@"hh\:mm\:ss\.fff")
                                 },
                                 CurrentClipCount = 1
                             }
@@ -582,6 +604,12 @@ namespace ASLTv1.Services
 
             if (!string.IsNullOrEmpty(currentJsonFile) && File.Exists(currentJsonFile))
             {
+                // 경로 트래버설 방지 검증
+                if (!PathValidator.IsPathSafe(currentJsonFile, videoDir))
+                {
+                    Log.Warning("[보안] 삭제 경로 트래버설 감지: {Path}", currentJsonFile);
+                    return false;
+                }
                 jsonPath = currentJsonFile;
             }
             else
