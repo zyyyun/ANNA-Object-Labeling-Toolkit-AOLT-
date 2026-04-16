@@ -294,10 +294,30 @@ namespace ASLTv1.Forms
             {
                 Log.Information("[영상 로드] 이전 로드 작업이 취소됨: {FilePath}", filePath);
             }
+            catch (IOException ioEx)
+            {
+                Log.Error(ioEx, "[영상 로드 오류 - I/O] {FilePath}", filePath);
+                MessageBox.Show($"비디오 파일을 읽을 수 없습니다.\n\n" +
+                    $"파일: {Path.GetFileName(filePath)}\n" +
+                    $"원인: {ioEx.Message}\n\n" +
+                    $"해결 방법: 파일이 존재하고 다른 프로그램에서 사용 중이지 않은지 확인하세요.",
+                    "파일 오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            catch (OpenCvSharp.OpenCVException ocvEx)
+            {
+                Log.Error(ocvEx, "[영상 로드 오류 - 코덱] {FilePath}", filePath);
+                MessageBox.Show($"비디오 코덱을 지원하지 않습니다.\n\n" +
+                    $"파일: {Path.GetFileName(filePath)}\n" +
+                    $"원인: {ocvEx.Message}\n\n" +
+                    $"해결 방법: MP4(H.264) 형식의 비디오 파일을 사용하세요.",
+                    "코덱 오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
             catch (Exception ex)
             {
                 Log.Error(ex, "[영상 로드 오류] {FilePath}", filePath);
-                MessageBox.Show($"비디오 로드 중 오류가 발생했습니다:\n{ex.Message}",
+                MessageBox.Show($"비디오 로드 중 오류가 발생했습니다.\n\n" +
+                    $"원인: {ex.Message}\n\n" +
+                    $"해결 방법: 프로그램을 재시작하거나 다른 비디오 파일을 시도하세요.",
                     "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -343,6 +363,10 @@ namespace ASLTv1.Forms
                 }
 
                 pictureBoxVideo.Invalidate();
+            }
+            catch (OpenCvSharp.OpenCVException ocvEx)
+            {
+                Log.Error(ocvEx, "[프레임 로드 오류 - OpenCV] Frame {Index}", frameIndex);
             }
             catch (Exception ex)
             {
@@ -461,6 +485,10 @@ namespace ASLTv1.Forms
                     labelCurrentJsonFile.Text = Path.GetFileName(currentJsonFile);
                 }
             }
+            catch (IOException ioEx)
+            {
+                Log.Error(ioEx, "[JSON 로드 오류 - I/O] {Message}", ioEx.Message);
+            }
             catch (Exception ex)
             {
                 Log.Error(ex, "[JSON 로드 오류] {Message}", ex.Message);
@@ -527,10 +555,25 @@ namespace ASLTv1.Forms
                         $"JSON 파일이 저장되었습니다.\n\n파일: {savedFileName}\n위치: {labelsDir}\n박스 개수: {boundingBoxes.Count}개",
                         "저장 완료", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
+                catch (InvalidOperationException invEx)
+                {
+                    loadingForm.Close();
+                    MessageBox.Show($"JSON 저장 실패:\n\n{invEx.Message}",
+                        "저장 오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                catch (IOException ioEx)
+                {
+                    loadingForm.Close();
+                    MessageBox.Show($"파일 저장 중 오류가 발생했습니다.\n\n" +
+                        $"원인: {ioEx.Message}\n\n" +
+                        $"해결 방법: 저장 경로의 디스크 공간과 쓰기 권한을 확인하세요.",
+                        "저장 오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
                 catch (Exception ex)
                 {
                     loadingForm.Close();
-                    MessageBox.Show($"JSON 저장 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show($"JSON 저장 중 예기치 않은 오류가 발생했습니다:\n{ex.Message}",
+                        "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
             catch (Exception outerEx)
@@ -644,6 +687,11 @@ namespace ASLTv1.Forms
                     timerPlayback.Stop();
                 }
             }
+            catch (InvalidOperationException invEx)
+            {
+                Log.Error(invEx, "[재생 오류 - 상태] {Message}", invEx.Message);
+                isPlaying = false; btnPlay.Text = "▶"; timerPlayback?.Stop();
+            }
             catch (Exception ex)
             {
                 Log.Error(ex, "[재생 버튼 오류] {Message}", ex.Message);
@@ -709,6 +757,13 @@ namespace ASLTv1.Forms
             try
             {
                 await SetExitMarkerAndCreateWaypoint();
+            }
+            catch (InvalidOperationException invEx)
+            {
+                Log.Error(invEx, "[Exit 설정 오류] {Message}", invEx.Message);
+                MessageBox.Show($"Exit 마커 설정 실패:\n\n{invEx.Message}\n\n" +
+                    $"해결 방법: Entry 마커를 먼저 설정한 후 다시 시도하세요.",
+                    "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             catch (Exception ex)
             {

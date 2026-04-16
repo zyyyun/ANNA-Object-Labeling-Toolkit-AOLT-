@@ -173,6 +173,7 @@ namespace ASLTv1.Services
             Action<string>? progressCallback = null)
         {
             var result = new LoadResult();
+            string loadPath = "";
 
             try
             {
@@ -199,7 +200,7 @@ namespace ASLTv1.Services
                     return result;
                 }
 
-                string loadPath = normalPath;
+                loadPath = normalPath;
                 result.LoadedFilePath = loadPath;
 
                 // File size check
@@ -214,9 +215,20 @@ namespace ASLTv1.Services
                         File.Delete(backupPath);
                     File.Copy(loadPath, backupPath);
                 }
+                catch (IOException backupIoEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[백업 생성 실패 - I/O] {backupIoEx.Message}");
+                    Log.Warning("[백업 생성 실패] I/O 오류: {Message}", backupIoEx.Message);
+                }
+                catch (UnauthorizedAccessException backupAuthEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[백업 생성 실패 - 권한] {backupAuthEx.Message}");
+                    Log.Warning("[백업 생성 실패] 접근 권한 오류: {Message}", backupAuthEx.Message);
+                }
                 catch (Exception backupEx)
                 {
-                    Log.Warning("[JSON 로드] 백업 파일 생성 실패: {Message}", backupEx.Message);
+                    System.Diagnostics.Debug.WriteLine($"[백업 생성 실패] {backupEx.Message}");
+                    Log.Warning("[백업 생성 실패] {Message}", backupEx.Message);
                 }
 
                 // Read and parse JSON
@@ -403,14 +415,44 @@ namespace ASLTv1.Services
             catch (OutOfMemoryException oomEx)
             {
                 result.Success = false;
-                result.ErrorMessage = $"메모리 부족으로 파일을 로드할 수 없습니다.\n{oomEx.Message}";
+                result.ErrorMessage = $"메모리 부족으로 파일을 로드할 수 없습니다.\n\n" +
+                    $"해결 방법: 다른 프로그램을 종료하고 다시 시도하세요.\n" +
+                    $"상세: {oomEx.Message}";
+            }
+            catch (Newtonsoft.Json.JsonReaderException jrEx)
+            {
+                result.Success = false;
+                result.ErrorMessage = $"JSON 파일이 손상되었습니다.\n\n" +
+                    $"파일: {Path.GetFileName(loadPath)}\n" +
+                    $"위치: 줄 {jrEx.LineNumber}, 열 {jrEx.LinePosition}\n\n" +
+                    $"해결 방법: 백업 파일({Path.GetFileName(loadPath)}.backup)을 확인하거나 " +
+                    $"새로 라벨링을 시작하세요.";
+                Log.Warning("[JSON 파싱 오류] {Path}: 줄 {Line}, 열 {Col}", loadPath, jrEx.LineNumber, jrEx.LinePosition);
+            }
+            catch (Newtonsoft.Json.JsonSerializationException jsEx)
+            {
+                result.Success = false;
+                result.ErrorMessage = $"JSON 데이터 형식이 올바르지 않습니다.\n\n" +
+                    $"상세: {jsEx.Message}\n\n" +
+                    $"해결 방법: JSON 파일의 구조가 COCO 형식과 일치하는지 확인하세요.";
+                Log.Warning("[JSON 역직렬화 오류] {Path}: {Message}", loadPath, jsEx.Message);
+            }
+            catch (IOException ioEx)
+            {
+                result.Success = false;
+                result.ErrorMessage = $"파일을 읽을 수 없습니다.\n\n" +
+                    $"파일: {Path.GetFileName(loadPath)}\n" +
+                    $"원인: {ioEx.Message}\n\n" +
+                    $"해결 방법: 파일이 다른 프로그램에서 사용 중인지 확인하세요.";
+                Log.Warning("[파일 I/O 오류] {Path}: {Message}", loadPath, ioEx.Message);
             }
             catch (Exception ex)
             {
                 result.Success = false;
-                result.ErrorMessage = $"라벨링 데이터 로드 오류: {ex.Message}";
-                if (ex.InnerException != null)
-                    result.ErrorMessage += $"\n\n상세 정보: {ex.InnerException.Message}";
+                result.ErrorMessage = $"라벨링 데이터 로드 중 예기치 않은 오류가 발생했습니다.\n\n" +
+                    $"상세: {ex.Message}\n\n" +
+                    $"해결 방법: 프로그램을 재시작하거나 파일을 다시 선택하세요.";
+                Log.Error(ex, "[JSON 로드 오류] {Path}", loadPath);
             }
 
             return result;
@@ -577,6 +619,16 @@ namespace ASLTv1.Services
                 };
                 string json = JsonConvert.SerializeObject(labelingData, settings);
                 File.WriteAllText(filePath, json);
+            }
+            catch (IOException ioEx)
+            {
+                throw new InvalidOperationException($"JSON 파일 저장 실패: {ioEx.Message}\n\n" +
+                    $"해결 방법: 저장 경로에 쓰기 권한이 있는지 확인하세요.", ioEx);
+            }
+            catch (UnauthorizedAccessException uaEx)
+            {
+                throw new InvalidOperationException($"JSON 파일 접근 권한 없음: {uaEx.Message}\n\n" +
+                    $"해결 방법: 파일이 읽기 전용이 아닌지 확인하세요.", uaEx);
             }
             catch (Exception ex)
             {

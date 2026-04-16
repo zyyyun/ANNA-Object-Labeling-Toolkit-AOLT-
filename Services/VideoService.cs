@@ -208,6 +208,11 @@ namespace ASLTv1.Services
 
                 return bitmap;
             }
+            catch (OpenCvSharp.OpenCVException ocvEx)
+            {
+                Log.Error(ocvEx, "[프레임 로드 오류 - OpenCV] {Message}", ocvEx.Message);
+                return null;
+            }
             catch (Exception ex)
             {
                 Log.Error(ex, "[프레임 로드 오류] {Message}", ex.Message);
@@ -471,6 +476,15 @@ namespace ASLTv1.Services
                         }
                     }
                 }
+            }
+            catch (FormatException fmtEx)
+            {
+                Log.Warning("[자막 파싱 오류] SRT 파일 형식 오류: {Message}", fmtEx.Message);
+                subtitleEntries.Clear();
+            }
+            catch (IOException ioEx)
+            {
+                Log.Warning("[자막 로드 오류] 파일 읽기 실패: {Message}", ioEx.Message);
             }
             catch (Exception ex)
             {
