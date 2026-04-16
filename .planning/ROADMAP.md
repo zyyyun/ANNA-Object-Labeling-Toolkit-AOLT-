@@ -44,7 +44,10 @@ Plans:
   3. 빠른 영상 전환 시 레이스 컨디션으로 인한 화면 오류가 발생하지 않는다
   4. null 참조로 인한 NullReferenceException이 발생하지 않는다
   5. Undo/Redo 스택이 설정 상한을 초과하지 않는다
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 02-01-PLAN.md — Global exception handler + CancellationToken video loading + playback stop
+- [ ] 02-02-PLAN.md — Timer disposal + null guards + undo stack verification
 
 ### Phase 3: 기능 정확성 + 보안
 **Goal**: 핵심 기능 버그가 수정되고 COCO JSON 정합성과 KISA 보안 기준이 충족된다
@@ -100,7 +103,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. 로그 인프라 | 1/1 | Complete   | 2026-04-16 |
-| 2. 안정성 기반 | 0/TBD | Not started | - |
+| 2. 안정성 기반 | 0/2 | In progress | - |
 | 3. 기능 정확성 + 보안 | 0/TBD | Not started | - |
 | 4. 성능 + 사용성 | 0/TBD | Not started | - |
 | 5. 이식성 | 0/TBD | Not started | - |
