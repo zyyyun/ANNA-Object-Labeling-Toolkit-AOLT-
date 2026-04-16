@@ -1443,6 +1443,7 @@ namespace ASLTv1.Forms
             {
                 isResizing = false;
                 currentResizeHandle = ResizeHandle.None;
+                if (selectedBox == null) return;  // RELI-04 null guard
                 var undoBox = CloneBoundingBox(selectedBox);
                 undoBox.Rectangle = originalResizeRect;
                 AddUndoAction(new UndoAction { Type = UndoActionType.ModifyBox, Box = undoBox });
@@ -1951,6 +1952,7 @@ namespace ASLTv1.Forms
         private void AddUndoAction(UndoAction action)
         {
             undoStack.Push(action);
+            // PERF-03: Enforce MAX_UNDO_STACK limit - removes oldest (bottom) entry
             if (undoStack.Count > MAX_UNDO_STACK)
             {
                 var tempList = undoStack.ToList();
