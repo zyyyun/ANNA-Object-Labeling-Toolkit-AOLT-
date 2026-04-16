@@ -339,14 +339,52 @@ namespace ASLTv1.Forms
                 // Rebind selected box when frame changes
                 if (selectedBox != null && selectedBox.FrameIndex != frameIndex)
                 {
-                    var selLabel = selectedBox.Label;
+                    // USAB-08 / 스냅백 버그 수정:
+                    // 드래그/리사이즈 중 프레임이 변경될 때 현재 위치를 유지해야 한다.
+                    // 기존 코드는 새 프레임의 박스(Waypoint 생성 시 전파된 옛 위치)로
+                    // selectedBox를 교체했기 때문에 스냅백이 발생했다.
+                    Rectangle? carriedRect = (isDragging || isResizing) ? selectedBox.Rectangle : (Rectangle?)null;
+                    string selLabel = selectedBox.Label;
                     int selId = GetBoxId(selectedBox);
+
                     var rebound = boundingBoxes.FirstOrDefault(b =>
                         b.FrameIndex == frameIndex && b.Label == selLabel && GetBoxId(b) == selId && !b.IsDeleted);
                     if (rebound != null)
                     {
+                        // 드래그 중이면 새 프레임 박스에 현재 위치를 덮어써서 스냅백 방지
+                        if (carriedRect.HasValue)
+                            rebound.Rectangle = carriedRect.Value;
                         selectedBox = rebound;
                         HighlightSelectedBoxInSidebar();
+                    }
+                    else if (isDragging && carriedRect.HasValue)
+                    {
+                        // 새 프레임에 박스가 없는 경우 — 웨이포인트 범위 내라면 추적 박스 생성
+                        var trackWp = waypointMarkers.FirstOrDefault(w =>
+                            w.Label == selLabel && w.ObjectId == selId &&
+                            frameIndex >= w.EntryFrame && frameIndex <= w.ExitFrame);
+                        if (trackWp != null)
+                        {
+                            var newTrackBox = new BoundingBox
+                            {
+                                FrameIndex = frameIndex,
+                                Rectangle = carriedRect.Value,
+                                Label = selLabel,
+                                PersonId = selLabel == "person" ? selId : 0,
+                                VehicleId = selLabel == "vehicle" ? selId : 0,
+                                EventId = selLabel == "event" ? selId : 0,
+                                Action = "waypoint"
+                            };
+                            boundingBoxes.Add(newTrackBox);
+                            InvalidateBoxCache();
+                            selectedBox = newTrackBox;
+                            HighlightSelectedBoxInSidebar();
+                        }
+                        else
+                        {
+                            selectedBox = null;
+                            ClearSidebarHighlights();
+                        }
                     }
                     else
                     {
@@ -1551,8 +1589,13 @@ namespace ASLTv1.Forms
                 undoBox.Rectangle = originalResizeRect;
                 AddUndoAction(new UndoAction { Type = UndoActionType.ModifyBox, Box = undoBox });
                 InvalidateBoxCache();
-                if (selectedBox != null && selectedBox.Label == "event")
-                    PropagateEventBoxFromCurrentFrame(selectedBox);
+                if (selectedBox != null)
+                {
+                    if (selectedBox.Label == "event")
+                        PropagateEventBoxFromCurrentFrame(selectedBox);
+                    else if (selectedBox.Label == "person" || selectedBox.Label == "vehicle")
+                        PropagatePersonVehicleBoxFromCurrentFrame(selectedBox);
+                }
                 pictureBoxVideo.Cursor = Cursors.Default;
                 pictureBoxVideo.Invalidate();
             }
@@ -1566,6 +1609,8 @@ namespace ASLTv1.Forms
                     {
                         if (selectedBox.Label == "event")
                             PropagateEventBoxFromCurrentFrame(selectedBox);
+                        else if (selectedBox.Label == "person" || selectedBox.Label == "vehicle")
+                            PropagatePersonVehicleBoxFromCurrentFrame(selectedBox);
                     }
                 }
                 doubleClickTimer?.Dispose();
@@ -2138,6 +2183,44 @@ namespace ASLTv1.Forms
                 {
                     if (!boundingBoxes.Any(b => b.FrameIndex == frame && b.Label == "event" && b.EventId == box.EventId))
                         boundingBoxes.Add(new BoundingBox { FrameIndex = frame, Rectangle = box.Rectangle, Label = "event", EventId = box.EventId, Action = "waypoint" });
+                }
+            }
+            InvalidateBoxCache(); UpdateBoxCount(); UpdateBboxListDisplay();
+        }
+
+        /// <summary>
+        /// USAB-08: Person/Vehicle 박스의 현재 위치를 웨이포인트 범위 내 이후 프레임에 전파합니다.
+        /// Event 클래스의 PropagateEventBoxFromCurrentFrame과 동일한 동작.
+        /// - 이후 프레임에 같은 label+ID 박스가 있으면 위치 덮어쓰기
+        /// - 없으면 새 박스 생성 (수동 추적 시 프레임마다 박스 생성)
+        /// </summary>
+        private void PropagatePersonVehicleBoxFromCurrentFrame(BoundingBox box)
+        {
+            if (box.Label != "person" && box.Label != "vehicle") return;
+            int objId = GetBoxId(box);
+            var waypoint = waypointMarkers.FirstOrDefault(w =>
+                box.FrameIndex >= w.EntryFrame && box.FrameIndex <= w.ExitFrame &&
+                w.Label == box.Label && w.ObjectId == objId);
+            if (waypoint == null) return;
+
+            var boxesToUpdate = boundingBoxes.Where(b =>
+                b.FrameIndex > box.FrameIndex && b.FrameIndex <= waypoint.ExitFrame &&
+                b.Label == box.Label && GetBoxId(b) == objId && !b.IsDeleted).ToList();
+            foreach (var target in boxesToUpdate) target.Rectangle = box.Rectangle;
+
+            if (boxesToUpdate.Count == 0)
+            {
+                for (int frame = box.FrameIndex + 1; frame <= waypoint.ExitFrame; frame++)
+                {
+                    bool exists = boundingBoxes.Any(b =>
+                        b.FrameIndex == frame && b.Label == box.Label && GetBoxId(b) == objId);
+                    if (!exists)
+                        boundingBoxes.Add(new BoundingBox
+                        {
+                            FrameIndex = frame, Rectangle = box.Rectangle, Label = box.Label,
+                            PersonId = box.PersonId, VehicleId = box.VehicleId, EventId = box.EventId,
+                            Action = "waypoint"
+                        });
                 }
             }
             InvalidateBoxCache(); UpdateBoxCount(); UpdateBboxListDisplay();
