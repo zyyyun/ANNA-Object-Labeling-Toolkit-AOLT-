@@ -67,7 +67,7 @@ Plans:
   11. BBOX 삭제 시 내부 데이터에 즉시 반영되어 화면 상태와 저장 데이터가 일치한다
 **Plans**: 4 plans
 Plans:
-- [ ] 03-01-PLAN.md — COCO JSON 타임스탬프 수정 + bbox 좌표 클램핑 + 카테고리 ID 정확화
+- [x] 03-01-PLAN.md — COCO JSON 타임스탬프 수정 + bbox 좌표 클램핑 + 카테고리 ID 정확화
 - [ ] 03-02-PLAN.md — PBKDF2 해싱 모듈 + 경로 트래버설 방지 모듈
 - [ ] 03-03-PLAN.md — 상태 초기화 + 삭제 통일 + 단축키 충돌 해소 + bbox 클램핑 적용
 - [ ] 03-04-PLAN.md — 구체적 예외 처리 + 사용자 친화적 오류 메시지
