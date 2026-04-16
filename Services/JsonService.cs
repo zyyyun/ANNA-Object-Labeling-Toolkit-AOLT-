@@ -1,3 +1,4 @@
+using Serilog;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using ASLTv1.Models;
@@ -204,7 +205,7 @@ namespace ASLTv1.Services
                 }
                 catch (Exception backupEx)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[JSON 로드] 백업 파일 생성 실패: {backupEx.Message}");
+                    Log.Warning("[JSON 로드] 백업 파일 생성 실패: {Message}", backupEx.Message);
                 }
 
                 // Read and parse JSON

@@ -7,7 +7,7 @@ using System.Windows.Forms;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Diagnostics;
+using Serilog;
 using OpenCvSharp;
 using OpenCvSharp.Extensions;
 using ASLTv1.Models;
@@ -325,7 +325,7 @@ namespace ASLTv1.Forms
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[프레임 로드 오류] {ex.Message}\n{ex.StackTrace}");
+                Log.Error(ex, "[프레임 로드 오류] {Message}", ex.Message);
             }
         }
 
@@ -424,7 +424,7 @@ namespace ASLTv1.Forms
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[JSON 로드 오류] {ex.Message}\n{ex.StackTrace}");
+                Log.Error(ex, "[JSON 로드 오류] {Message}", ex.Message);
             }
         }
 
@@ -482,6 +482,8 @@ namespace ASLTv1.Forms
                     string savedFileName = !string.IsNullOrEmpty(currentJsonFile) ? Path.GetFileName(currentJsonFile) : "labels.json";
                     string labelsDir = Path.GetDirectoryName(currentJsonFile) ?? Path.Combine(Path.GetDirectoryName(_videoService.CurrentVideoFile), "labels");
 
+                    LogService.AuditJsonSave(currentJsonFile ?? savedFileName);
+
                     MessageBox.Show(
                         $"JSON 파일이 저장되었습니다.\n\n파일: {savedFileName}\n위치: {labelsDir}\n박스 개수: {boundingBoxes.Count}개",
                         "저장 완료", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -494,7 +496,7 @@ namespace ASLTv1.Forms
             }
             catch (Exception outerEx)
             {
-                Debug.WriteLine($"[JSON 저장 버튼 오류] {outerEx.Message}\n{outerEx.StackTrace}");
+                Log.Error(outerEx, "[JSON 저장 버튼 오류] {Message}", outerEx.Message);
                 MessageBox.Show($"JSON 저장 중 외부 오류 발생:\n{outerEx.Message}", "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -597,7 +599,7 @@ namespace ASLTv1.Forms
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[재생 버튼 오류] {ex.Message}");
+                Log.Error(ex, "[재생 버튼 오류] {Message}", ex.Message);
                 isPlaying = false;
                 btnPlay.Text = "▶";
                 timerPlayback?.Stop();
@@ -663,7 +665,7 @@ namespace ASLTv1.Forms
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[Exit 버튼 오류] {ex.Message}");
+                Log.Error(ex, "[Exit 버튼 오류] {Message}", ex.Message);
                 MessageBox.Show($"Exit 설정 중 오류 발생:\n{ex.Message}", "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }

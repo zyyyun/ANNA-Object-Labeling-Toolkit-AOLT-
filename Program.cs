@@ -1,4 +1,5 @@
 using ASLTv1.Forms;
+using ASLTv1.Services;
 
 namespace ASLTv1
 {
@@ -7,8 +8,18 @@ namespace ASLTv1
         [STAThread]
         static void Main()
         {
-            ApplicationConfiguration.Initialize();
-            Application.Run(new MainForm());
+            LogService.Initialize();
+            LogService.AuditAppStart();
+            try
+            {
+                ApplicationConfiguration.Initialize();
+                Application.Run(new MainForm());
+            }
+            finally
+            {
+                LogService.AuditAppStop();
+                LogService.CloseAndFlush();
+            }
         }
     }
 }

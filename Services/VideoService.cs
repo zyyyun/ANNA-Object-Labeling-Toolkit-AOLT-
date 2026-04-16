@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Serilog;
 using OpenCvSharp;
 using OpenCvSharp.Extensions;
 using FFMpegCore;
@@ -205,7 +206,7 @@ namespace ASLTv1.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[프레임 로드 오류] {ex.Message}\n{ex.StackTrace}");
+                Log.Error(ex, "[프레임 로드 오류] {Message}", ex.Message);
                 return null;
             }
         }
@@ -469,7 +470,7 @@ namespace ASLTv1.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[자막 로드 오류] {ex.Message}");
+                Log.Warning("[자막 로드 오류] {Message}", ex.Message);
             }
         }
 
