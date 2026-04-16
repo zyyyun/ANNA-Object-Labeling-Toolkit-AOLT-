@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-기능-정확성-보안-01-PLAN.md
-last_updated: "2026-04-16T07:23:09.214Z"
+stopped_at: Completed 03-기능-정확성-보안-02-PLAN.md
+last_updated: "2026-04-16T07:25:26.268Z"
 last_activity: 2026-04-16 -- Phase null execution started
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 7
-  completed_plans: 4
+  completed_plans: 5
   percent: 0
 ---
 
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P01 | 2min | 2 tasks | 6 files |
 | Phase 02 P02 | 4min | 2 tasks | 1 files |
 | Phase 03-기능-정확성-보안 P01 | 10 | 2 tasks | 3 files |
+| Phase 03-기능-정확성-보안 P02 | 12 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -70,6 +71,7 @@ Recent decisions affecting current work:
 - [Phase 02]: Disposal order: timer -> CTS -> font -> video service (stop callbacks first)
 - [Phase 03-기능-정확성-보안]: TimeSpan 기반 타임스탬프로 DateTime.Now.AddSeconds 교체 - 프레임 상대 시간 정확성 확보
 - [Phase 03-기능-정확성-보안]: ClampToImage 적용 양방향(export+load) - bbox 좌표 범위 초과 방지
+- [Phase 03-기능-정확성-보안]: PBKDF2-HMAC-SHA256 310,000 iterations + 16-byte salt for SECU-01; PathValidator uses Path.GetFullPath normalization for SECU-04
 
 ### Pending Todos
 
@@ -81,6 +83,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-16T07:23:09.209Z
-Stopped at: Completed 03-기능-정확성-보안-01-PLAN.md
+Last session: 2026-04-16T07:25:26.264Z
+Stopped at: Completed 03-기능-정확성-보안-02-PLAN.md
 Resume file: None
