@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using ASLTv1.Helpers;
 using ASLTv1.Models;
 
 namespace ASLTv1.Services
@@ -125,7 +126,15 @@ namespace ASLTv1.Services
             string normalPath = Path.Combine(saveDir, baseFileName + "_labels.json");
 
             if (File.Exists(normalPath))
+            {
+                // 경로 트래버설 방지 검증
+                if (!PathValidator.IsPathSafe(normalPath, videoDir))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[보안] 경로 트래버설 감지: {normalPath}");
+                    return null;
+                }
                 return normalPath;
+            }
 
             return null;
         }
@@ -581,6 +590,12 @@ namespace ASLTv1.Services
 
             if (!string.IsNullOrEmpty(currentJsonFile) && File.Exists(currentJsonFile))
             {
+                // 경로 트래버설 방지 검증
+                if (!PathValidator.IsPathSafe(currentJsonFile, videoDir))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[보안] 삭제 경로 트래버설 감지: {currentJsonFile}");
+                    return false;
+                }
                 jsonPath = currentJsonFile;
             }
             else
