@@ -36,7 +36,7 @@ GS인증 1등급 통과를 위한 개선 항목:
 - [ ] 호환성: 데이터 교환(JSON) 정확성 보장 (타임스탬프 버그 수정)
 - [ ] 사용성: 일관된 UI 조작 방식 및 오류 메시지 제공
 - [ ] 사용성: 사용자 취급 설명서와 실제 동작 일치
-- [ ] 신뢰성: 고장 회피 (null 참조, 타이머 누수, 상태 불일치 수정)
+- [x] 신뢰성: 고장 회피 (null 참조, 타이머 누수, 상태 불일치 수정) (Phase 2 완료)
 - [ ] 신뢰성: 데이터 손실 방지 (자동 저장 또는 안전한 종료 처리)
 - [ ] 보안성: KISA 가이드 준수 암호화 적용 (SHA-256 이상)
 - [ ] 보안성: 접근 통제 강화 (라이선스 검증 개선)
@@ -57,7 +57,7 @@ GS인증 1등급 통과를 위한 개선 항목:
 
 - **기술 스택**: C# / .NET 8.0 / WinForms / OpenCvSharp4 / FFMpegCore / Newtonsoft.Json
 - **코드 규모**: MainForm.cs 약 2,500줄 단일 클래스 + Services/Models/Helpers/Theme 계층
-- **현재 상태**: Phase 1 완료 — Serilog 기반 로그 인프라 구축, 감사 추적 가능
+- **현재 상태**: Phase 2 완료 — 전역 예외 처리, 리소스 누수/레이스 컨디션 제거, null 안전성 확보
 - **코드베이스 맵**: `.planning/codebase/` 에 7개 분석 문서 존재
 - **주요 문제**:
   - Vehicle 드롭다운 선택 교체 불가 버그
@@ -102,4 +102,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-16 after Phase 1 completion*
+*Last updated: 2026-04-16 after Phase 2 completion*
