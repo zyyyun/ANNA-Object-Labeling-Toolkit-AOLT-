@@ -46,7 +46,7 @@ Plans:
   5. Undo/Redo 스택이 설정 상한을 초과하지 않는다
 **Plans**: 2 plans
 Plans:
-- [ ] 02-01-PLAN.md — Global exception handler + CancellationToken video loading + playback stop
+- [x] 02-01-PLAN.md — Global exception handler + CancellationToken video loading + playback stop
 - [ ] 02-02-PLAN.md — Timer disposal + null guards + undo stack verification
 
 ### Phase 3: 기능 정확성 + 보안
