@@ -429,6 +429,17 @@ namespace ASLTv1.Forms
                 nextAnnotationId = 1;
                 labelCurrentJsonFile.Text = "";
 
+                // FUNC-09: 이전 작업 상태 완전 초기화
+                undoStack.Clear();
+                redoStack.Clear();
+                entryFrameIndex = null;
+                exitFrameIndex = null;
+                currentMode = DrawMode.Select;
+                currentAssignedId = 1;
+                isDrawing = false;
+                isDragging = false;
+                isResizing = false;
+
                 if (result.Success)
                 {
                     boundingBoxes.AddRange(result.BoundingBoxes);
@@ -1413,6 +1424,9 @@ namespace ASLTv1.Forms
                 var viewPos = new PointF(e.X - dragOffset.X, e.Y - dragOffset.Y);
                 var imagePos = CoordinateHelper.ViewToImage(viewPos, pictureBoxVideo);
                 selectedBox.Rectangle = new Rectangle((int)imagePos.X, (int)imagePos.Y, selectedBox.Rectangle.Width, selectedBox.Rectangle.Height);
+                // FUNC-03: 이미지 범위 클램핑
+                if (pictureBoxVideo.Image != null)
+                    selectedBox.Rectangle = CoordinateHelper.ClampToImage(selectedBox.Rectangle, pictureBoxVideo.Image.Width, pictureBoxVideo.Image.Height);
                 pictureBoxVideo.Invalidate();
             }
             else if (currentMode == DrawMode.Select && selectedBox != null)
@@ -1435,6 +1449,9 @@ namespace ASLTv1.Forms
             {
                 if (drawingBox.Rectangle.Width > 10 && drawingBox.Rectangle.Height > 10)
                 {
+                    // FUNC-03: 이미지 범위 클램핑
+                    if (pictureBoxVideo.Image != null)
+                        drawingBox.Rectangle = CoordinateHelper.ClampToImage(drawingBox.Rectangle, pictureBoxVideo.Image.Width, pictureBoxVideo.Image.Height);
                     boundingBoxes.Add(drawingBox);
                     InvalidateBoxCache();
                     AddUndoAction(new UndoAction { Type = UndoActionType.AddBox, Box = drawingBox });
@@ -1656,6 +1673,9 @@ namespace ASLTv1.Forms
                     break;
             }
 
+            // FUNC-03: 이미지 범위 클램핑
+            if (pictureBoxVideo.Image != null)
+                newRect = CoordinateHelper.ClampToImage(newRect, pictureBoxVideo.Image.Width, pictureBoxVideo.Image.Height);
             selectedBox.Rectangle = newRect;
         }
 
@@ -2105,30 +2125,42 @@ namespace ASLTv1.Forms
                 }
             }
 
-            // Ctrl+1~4: vehicle 클래스 선택 (car/motorcycle/e_scooter/bicycle)
-            if (e.Control && !e.Shift && !e.Alt && (currentSelectedLabel == "vehicle" || (selectedBox != null && selectedBox.Label == "vehicle")))
+            // Ctrl+1~4: vehicle 클래스 선택 (car/motorcycle/e_scooter/bicycle) - selectedBox 우선
+            if (e.Control && !e.Shift && !e.Alt && selectedBox != null && selectedBox.Label == "vehicle")
             {
                 int? classId = GetIdFromKey(e.KeyCode, 0);
                 if (classId.HasValue && classId.Value >= 1 && classId.Value <= 4)
                 {
-                    if (selectedBox != null && selectedBox.Label == "vehicle")
-                        ChangeBoxIdWithinWaypoint(selectedBox, classId.Value);
-                    else
-                        currentAssignedId = classId.Value;
+                    ChangeBoxIdWithinWaypoint(selectedBox, classId.Value);
+                    e.Handled = true; return;
+                }
+            }
+            else if (e.Control && !e.Shift && !e.Alt && currentSelectedLabel == "vehicle" && selectedBox == null)
+            {
+                int? classId = GetIdFromKey(e.KeyCode, 0);
+                if (classId.HasValue && classId.Value >= 1 && classId.Value <= 4)
+                {
+                    currentAssignedId = classId.Value;
                     e.Handled = true; return;
                 }
             }
 
-            // Ctrl+1~0: event 클래스 선택 (event_hazard..event_abnormal_behavior)
-            if (e.Control && !e.Shift && !e.Alt && (currentSelectedLabel == "event" || (selectedBox != null && selectedBox.Label == "event")))
+            // Ctrl+1~0: event 클래스 선택 (event_hazard..event_abnormal_behavior) - selectedBox 우선
+            if (e.Control && !e.Shift && !e.Alt && selectedBox != null && selectedBox.Label == "event")
             {
                 int? classId = GetIdFromKey(e.KeyCode, 0);
                 if (classId.HasValue && classId.Value >= 1 && classId.Value <= 10)
                 {
-                    if (selectedBox != null && selectedBox.Label == "event")
-                        ChangeBoxIdWithinWaypoint(selectedBox, classId.Value);
-                    else
-                        currentAssignedId = classId.Value;
+                    ChangeBoxIdWithinWaypoint(selectedBox, classId.Value);
+                    e.Handled = true; return;
+                }
+            }
+            else if (e.Control && !e.Shift && !e.Alt && currentSelectedLabel == "event" && selectedBox == null)
+            {
+                int? classId = GetIdFromKey(e.KeyCode, 0);
+                if (classId.HasValue && classId.Value >= 1 && classId.Value <= 10)
+                {
+                    currentAssignedId = classId.Value;
                     e.Handled = true; return;
                 }
             }
@@ -2155,13 +2187,17 @@ namespace ASLTv1.Forms
                 int moveAmount = e.Shift ? 10 : 2;
                 Rectangle rect = selectedBox.Rectangle;
                 switch (e.KeyCode) { case Keys.W: rect.Y -= moveAmount; break; case Keys.A: rect.X -= moveAmount; break; case Keys.S: rect.Y += moveAmount; break; case Keys.D: rect.X += moveAmount; break; }
+                // FUNC-03: 이미지 범위 클램핑
+                if (pictureBoxVideo.Image != null)
+                    rect = CoordinateHelper.ClampToImage(rect, pictureBoxVideo.Image.Width, pictureBoxVideo.Image.Height);
                 selectedBox.Rectangle = rect; pictureBoxVideo.Invalidate(); e.Handled = true;
             }
             else if ((e.KeyCode == Keys.Delete || e.KeyCode == Keys.G) && selectedBox != null)
             {
                 AddUndoAction(new UndoAction { Type = UndoActionType.RemoveBox, Box = CloneBoundingBox(selectedBox) });
-                selectedBox.IsDeleted = true;
-                selectedBox = null; UpdateBoxCount(); UpdateBboxListDisplay(); pictureBoxVideo.Invalidate(); e.Handled = true;
+                boundingBoxes.Remove(selectedBox);
+                selectedBox = null;
+                InvalidateBoxCache(); UpdateBoxCount(); UpdateBboxListDisplay(); pictureBoxVideo.Invalidate(); e.Handled = true;
             }
             else if (e.KeyCode == Keys.Delete && selectedBox == null)
             {
@@ -2213,7 +2249,7 @@ namespace ASLTv1.Forms
             var waypoint = FindWaypointForBox(box);
             if (waypoint != null)
             {
-                var boxesToUpdate = boundingBoxes.Where(b => b.Label == box.Label && GetBoxId(b) == oldId && b.FrameIndex >= waypoint.EntryFrame && b.FrameIndex <= waypoint.ExitFrame && !b.IsDeleted).ToList();
+                var boxesToUpdate = boundingBoxes.Where(b => b.Label == box.Label && GetBoxId(b) == oldId && b.FrameIndex >= waypoint.EntryFrame && b.FrameIndex <= waypoint.ExitFrame && !b.IsDeleted && FindWaypointForBox(b) == waypoint).ToList();
                 foreach (var b in boxesToUpdate) SetBoxId(b, box.Label, newId);
                 waypoint.ObjectId = newId;
                 UpdateWaypointListView();
