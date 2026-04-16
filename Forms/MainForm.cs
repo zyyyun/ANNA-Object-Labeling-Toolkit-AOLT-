@@ -1290,15 +1290,18 @@ namespace ASLTv1.Forms
                             {
                                 if (isWaitingForDoubleClick && !isDragging)
                                 {
-                                    this.Invoke((Action)(() =>
+                                    if (!IsDisposed && IsHandleCreated)
                                     {
-                                        if (isWaitingForDoubleClick && selectedBox != null)
+                                        this.Invoke((Action)(() =>
                                         {
-                                            isDragging = true;
-                                            isWaitingForDoubleClick = false;
-                                            pictureBoxVideo.Invalidate();
-                                        }
-                                    }));
+                                            if (isWaitingForDoubleClick && selectedBox != null)
+                                            {
+                                                isDragging = true;
+                                                isWaitingForDoubleClick = false;
+                                                pictureBoxVideo.Invalidate();
+                                            }
+                                        }));
+                                    }
                                 }
                             }, null, 500, Timeout.Infinite);
                             return;
@@ -2611,6 +2614,11 @@ namespace ASLTv1.Forms
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             base.OnFormClosing(e);
+            doubleClickTimer?.Dispose();
+            doubleClickTimer = null;
+            _videoLoadCts?.Cancel();
+            _videoLoadCts?.Dispose();
+            labelFont?.Dispose();
             _videoService?.Dispose();
         }
 
