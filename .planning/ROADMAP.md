@@ -52,26 +52,35 @@ Plans:
 ### Phase 3: 기능 정확성 + 보안
 **Goal**: 핵심 기능 버그가 수정되고 COCO JSON 정합성과 KISA 보안 기준이 충족된다
 **Depends on**: Phase 2
-**Requirements**: FUNC-01, FUNC-02, FUNC-03, FUNC-04, FUNC-05, COMP-01, RELI-05, USAB-03, SECU-01, SECU-04, MAINT-02
+**Requirements**: FUNC-01, FUNC-02, FUNC-03, FUNC-04, FUNC-05, FUNC-06, FUNC-07, FUNC-08, FUNC-09, FUNC-10, COMP-01, RELI-05, USAB-03, SECU-01, SECU-04, MAINT-02
 **Success Criteria** (what must be TRUE):
   1. Vehicle 라벨 드롭다운에서 차량 종류를 선택하고 교체할 수 있다
   2. 내보낸 COCO JSON의 타임스탬프가 실제 프레임 시간을 반영한다
   3. 바운딩 박스 좌표가 이미지 경계를 절대 초과하지 않는다
   4. 라이선스 검증에 SHA-256 + Salt 기반 PBKDF2 해싱이 적용된다
   5. 손상된 JSON/SRT 파일을 열 때 크래시 없이 사용자 안내 메시지가 표시된다
+  6. BBOX 생성 후 ID를 사후 지정해도 Entry-Exit 구간에서 동일 객체 ID가 유지된다
+  7. Entry-Exit 프레임 간 객체 ID가 불일치하면 안내 메시지가 표시된다
+  8. 객체 선택 상태에서 ID 변경 단축키가 Person/Vehicle/Event 전 클래스에서 일관되게 동작한다
+  9. 다중 BBOX 상태에서 단축키로 ID 변경 시 선택된 객체만 변경된다 (전체 일괄 변경 방지)
+  10. 새 영상 로드 시 이전 작업의 Waypoint·Labels·JSON 상태가 완전히 초기화된다
+  11. BBOX 삭제 시 내부 데이터에 즉시 반영되어 화면 상태와 저장 데이터가 일치한다
 **Plans**: TBD
 **UI hint**: yes
 
 ### Phase 4: 성능 + 사용성
 **Goal**: 프레임 조회 성능이 최적화되고 UI 피드백이 일관되게 동작한다
 **Depends on**: Phase 3
-**Requirements**: PERF-01, COMP-02, USAB-01, USAB-02, USAB-04, USAB-05, MAINT-03
+**Requirements**: PERF-01, COMP-02, USAB-01, USAB-02, USAB-04, USAB-05, USAB-06, USAB-07, USAB-08, MAINT-03
 **Success Criteria** (what must be TRUE):
   1. 프레임 이동 시 바운딩 박스 조회가 체감 지연 없이 즉시 표시된다
   2. 모든 툴바 버튼에 마우스를 올리면 툴팁이 나타난다
   3. 전체 삭제 등 파괴적 작업 실행 전 확인 다이얼로그가 표시된다
   4. 저장하지 않고 앱을 닫으려 하면 경고 메시지가 표시된다
   5. Undo/Redo 가능 여부에 따라 버튼이 활성/비활성으로 표시된다
+  6. 프로그램 상단 제품명이 문서 기준 정식 명칭과 일치하고, 상단 버튼이 우측으로 재배치되어 공간이 확보된다
+  7. [정보] 단축키 설명에 Person/Vehicle/Event 클래스별 적용 범위가 명확히 구분되고, Vehicle 단축키가 포함되며, event_ 접두어가 제거된다
+  8. Person/Vehicle 클래스에서 Entry-Exit 구간 내 프레임 단위 수동 추적(좌클릭 유지 + 프레임 이동으로 BBOX 위치 갱신)이 가능하다
 **Plans**: TBD
 **UI hint**: yes
 
