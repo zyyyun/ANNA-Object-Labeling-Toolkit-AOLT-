@@ -86,7 +86,11 @@ Plans:
   6. 프로그램 상단 제품명이 문서 기준 정식 명칭과 일치하고, 상단 버튼이 우측으로 재배치되어 공간이 확보된다
   7. [정보] 단축키 설명에 Person/Vehicle/Event 클래스별 적용 범위가 명확히 구분되고, Vehicle 단축키가 포함되며, event_ 접두어가 제거된다
   8. Person/Vehicle 클래스에서 Entry-Exit 구간 내 프레임 단위 수동 추적(좌클릭 유지 + 프레임 이동으로 BBOX 위치 갱신)이 가능하다
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 04-01-PLAN.md — 딕셔너리 인덱싱 O(1) bbox 조회 + 매직 넘버 상수 추출
+- [ ] 04-02-PLAN.md — isDirty 미저장 경고 + 종료/영상전환 확인 다이얼로그 + FFmpeg 안내
+- [ ] 04-03-PLAN.md — 툴팁 추가 + 제품명 정식 명칭 + 단축키 목록 재구성
 **UI hint**: yes
 
 ### Phase 5: 이식성
@@ -119,6 +123,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 1. 로그 인프라 | 1/1 | Complete   | 2026-04-16 |
 | 2. 안정성 기반 | 2/2 | Complete   | 2026-04-16 |
 | 3. 기능 정확성 + 보안 | 0/4 | Not started | - |
-| 4. 성능 + 사용성 | 0/TBD | Not started | - |
+| 4. 성능 + 사용성 | 0/3 | Not started | - |
 | 5. 이식성 | 0/TBD | Not started | - |
 | 6. 문서화 | 0/TBD | Not started | - |
