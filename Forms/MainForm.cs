@@ -857,6 +857,29 @@ namespace ASLTv1.Forms
                 return;
             }
 
+            // FUNC-06: Entry-Exit 프레임 간 객체 ID 불일치 감지 및 경고
+            var exitPersonBoxes = boundingBoxes.Where(b => b.FrameIndex == currentFrameIndex && b.Label == "person" && !b.IsDeleted).ToList();
+            var exitVehicleBoxes = boundingBoxes.Where(b => b.FrameIndex == currentFrameIndex && b.Label == "vehicle" && !b.IsDeleted).ToList();
+            var mismatchMessages = new List<string>();
+            foreach (var entryBox in entryPersonBoxes)
+            {
+                if (exitPersonBoxes.Count > 0 && !exitPersonBoxes.Any(b => b.PersonId == entryBox.PersonId))
+                    mismatchMessages.Add($"Person ID {entryBox.PersonId:D2}: Entry 프레임({entryFrameIndex.Value})과 Exit 프레임({currentFrameIndex}) 간 ID가 일치하지 않습니다.");
+            }
+            foreach (var entryBox in entryVehicleBoxes)
+            {
+                if (exitVehicleBoxes.Count > 0 && !exitVehicleBoxes.Any(b => b.VehicleId == entryBox.VehicleId))
+                    mismatchMessages.Add($"Vehicle ID {entryBox.VehicleId:D2}: Entry 프레임({entryFrameIndex.Value})과 Exit 프레임({currentFrameIndex}) 간 ID가 일치하지 않습니다.");
+            }
+            if (mismatchMessages.Count > 0)
+            {
+                string mismatchMsg = "Entry-Exit 구간 내 객체 ID가 일치하지 않습니다:\n\n" +
+                    string.Join("\n", mismatchMessages) + "\n\n" +
+                    "해결 방법: Ctrl+N 또는 단축키로 Exit 프레임의 객체 ID를 Entry 프레임과 일치시킨 후 다시 시도하세요.";
+                MessageBox.Show(mismatchMsg, "ID 불일치 경고", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             exitFrameIndex = currentFrameIndex;
             TimeSpan exitTime = TimeSpan.FromSeconds(currentFrameIndex / fps);
             TimeSpan entryTime = TimeSpan.FromSeconds(entryFrameIndex.Value / fps);
