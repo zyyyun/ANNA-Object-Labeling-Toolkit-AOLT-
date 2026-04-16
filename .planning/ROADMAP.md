@@ -30,7 +30,9 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. 로그 레벨(Debug/Info/Warning/Error)이 구분되어 기록된다
   3. 감사 로그에 MAC 주소 원문이 저장되지 않고 해싱 또는 마스킹 처리된다
   4. 로그 파일이 날짜별로 로테이션되어 지정 디렉토리에 생성된다
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 01-01-PLAN.md — Serilog 기반 로그 인프라 구축 + Debug.WriteLine 교체 + 감사 로그
 
 ### Phase 2: 안정성 기반
 **Goal**: 비정상 종료, 리소스 누수, 레이스 컨디션이 제거되어 앱이 안정적으로 동작한다
@@ -97,7 +99,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. 로그 인프라 | 0/TBD | Not started | - |
+| 1. 로그 인프라 | 0/1 | Planning | - |
 | 2. 안정성 기반 | 0/TBD | Not started | - |
 | 3. 기능 정확성 + 보안 | 0/TBD | Not started | - |
 | 4. 성능 + 사용성 | 0/TBD | Not started | - |
