@@ -89,7 +89,7 @@ Plans:
 **Plans**: 3 plans
 Plans:
 - [x] 04-01-PLAN.md — 딕셔너리 인덱싱 O(1) bbox 조회 + 매직 넘버 상수 추출
-- [ ] 04-02-PLAN.md — isDirty 미저장 경고 + 종료/영상전환 확인 다이얼로그 + FFmpeg 안내
+- [x] 04-02-PLAN.md — isDirty 미저장 경고 + 종료/영상전환 확인 다이얼로그 + FFmpeg 안내
 - [ ] 04-03-PLAN.md — 툴팁 추가 + 제품명 정식 명칭 + 단축키 목록 재구성
 **UI hint**: yes
 

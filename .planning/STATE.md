@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-04-17T01:52:11.910Z"
-last_activity: 2026-04-17 -- Phase null execution started
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-04-17T01:55:23.737Z"
+last_activity: 2026-04-17
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 10
-  completed_plans: 8
-  percent: 0
+  completed_plans: 9
+  percent: 80
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-04-14)
 ## Current Position
 
 Phase: 04-성능-사용성 — EXECUTING
-Plan: 2 of 3
-Status: Executing Phase 04-성능-사용성
-Last activity: 2026-04-17 -- Completed 04-01-PLAN.md (PERF-01, MAINT-03)
+Plan: 3 of 3
+Status: Ready to execute
+Last activity: 2026-04-17
 
 Progress: [████████░░] 80%
 
@@ -58,6 +58,7 @@ Progress: [████████░░] 80%
 | Phase 03-기능-정확성-보안 P02 | 12 | 2 tasks | 4 files |
 | Phase 03-기능-정확성-보안 P04 | 10 | 2 tasks | 3 files |
 | Phase 04-성능-사용성 P01 | 1.3 | 2 tasks | 1 files |
+| Phase 04 P02 | 6 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -76,6 +77,8 @@ Recent decisions affecting current work:
 - [Phase 03-기능-정확성-보안]: PBKDF2-HMAC-SHA256 310,000 iterations + 16-byte salt for SECU-01; PathValidator uses Path.GetFullPath normalization for SECU-04
 - [Phase 03-기능-정확성-보안]: loadPath variable moved outside try block in LoadLabelingDataAsync to allow catch blocks to reference filename
 - [Phase 04-성능-사용성]: Lazy-built Dictionary<int,List<BoundingBox>> invalidated via existing InvalidateBoxCache; range-scan LINQ preserved for non-equality frame conditions
+- [Phase 04]: AddUndoAction 단일 choke-point 로 _isDirty 설정 — 모든 편집 조작이 undo 통해 흐름
+- [Phase 04]: FFmpeg 미설치 안내는 시작 시 1회 MessageBox + 이후 시도마다 Log.Warning — 반복 방해 없이 관측성 유지
 
 ### Pending Todos
 
@@ -87,6 +90,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-17T01:52:11.905Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-04-17T01:55:21.290Z
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None
