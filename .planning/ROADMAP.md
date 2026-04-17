@@ -116,7 +116,9 @@ Plans:
   3. Waypoint 미선택 상태에서는 기존대로 현재 프레임이 Entry/Exit로 지정된다 (기능 공존)
   4. 영상 로드 중에는 타임라인 클릭/드래그가 무시되어 렉/크래시가 발생하지 않는다
   5. Person/Vehicle 수동 추적 중에도 로드 경합이 발생하지 않는다
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 05.5-01-PLAN.md — Entry/Exit 버튼 이중 기능 분기 (USAB-09) + 타임라인 로드 가드 (RELI-06)
 
 ### Phase 6: 문서화
 **Goal**: 잠긴 바이너리와 완전히 일치하는 제품설명서 및 사용자취급설명서가 완성된다
@@ -140,5 +142,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 5.5 → 6
 | 3. 기능 정확성 + 보안 | 4/4 | Complete   | 2026-04-16 |
 | 4. 성능 + 사용성 | 3/3 | Complete   | 2026-04-17 |
 | 5. 이식성 | 2/2 | Complete   | 2026-04-17 |
-| 5.5. 기능 보정 + 안정화 | 0/TBD | Not started | - |
+| 5.5. 기능 보정 + 안정화 | 0/1 | Not started | - |
 | 6. 문서화 | 0/TBD | Not started | - |
