@@ -88,7 +88,7 @@ Plans:
   8. Person/Vehicle 클래스에서 Entry-Exit 구간 내 프레임 단위 수동 추적(좌클릭 유지 + 프레임 이동으로 BBOX 위치 갱신)이 가능하다
 **Plans**: 3 plans
 Plans:
-- [ ] 04-01-PLAN.md — 딕셔너리 인덱싱 O(1) bbox 조회 + 매직 넘버 상수 추출
+- [x] 04-01-PLAN.md — 딕셔너리 인덱싱 O(1) bbox 조회 + 매직 넘버 상수 추출
 - [ ] 04-02-PLAN.md — isDirty 미저장 경고 + 종료/영상전환 확인 다이얼로그 + FFmpeg 안내
 - [ ] 04-03-PLAN.md — 툴팁 추가 + 제품명 정식 명칭 + 단축키 목록 재구성
 **UI hint**: yes
