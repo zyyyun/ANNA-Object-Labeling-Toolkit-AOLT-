@@ -31,10 +31,10 @@ GS인증 1등급 통과를 위한 개선 항목:
 
 - [x] 기능 적합성: 모든 기존 기능이 오류 없이 정확하게 동작 (vehicle 드롭다운 교체 불가 등 버그 수정) (Phase 3 완료)
 - [ ] 기능 적합성: 모든 UI 컨트롤이 설명서 대로 동작
-- [ ] 성능 효율성: 프레임 로드 응답 시간 최적화 (바운딩 박스 조회 O(n) → 인덱싱)
-- [ ] 성능 효율성: CPU/메모리 사용 효율성 확보 (프레임 캐싱 개선)
+- [x] 성능 효율성: 프레임 로드 응답 시간 최적화 (바운딩 박스 조회 O(n) → 인덱싱) (Phase 4 완료)
+- [x] 성능 효율성: CPU/메모리 사용 효율성 확보 (프레임 캐싱 개선) (Phase 4 완료)
 - [x] 호환성: 데이터 교환(JSON) 정확성 보장 (타임스탬프 버그 수정) (Phase 3 완료)
-- [ ] 사용성: 일관된 UI 조작 방식 및 오류 메시지 제공
+- [x] 사용성: 일관된 UI 조작 방식 및 오류 메시지 제공 (Phase 4 완료)
 - [ ] 사용성: 사용자 취급 설명서와 실제 동작 일치
 - [x] 신뢰성: 고장 회피 (null 참조, 타이머 누수, 상태 불일치 수정) (Phase 2 완료)
 - [ ] 신뢰성: 데이터 손실 방지 (자동 저장 또는 안전한 종료 처리)
@@ -57,7 +57,7 @@ GS인증 1등급 통과를 위한 개선 항목:
 
 - **기술 스택**: C# / .NET 8.0 / WinForms / OpenCvSharp4 / FFMpegCore / Newtonsoft.Json
 - **코드 규모**: MainForm.cs 약 2,500줄 단일 클래스 + Services/Models/Helpers/Theme 계층
-- **현재 상태**: Phase 3 완료 — COCO JSON 정확성, KISA 보안 모듈, 핵심 기능 버그 7건, 구체적 예외 처리
+- **현재 상태**: Phase 4 완료 — O(1) 딕셔너리 bbox 인덱싱, 21개 툴팁, isDirty 미저장 경고, FFmpeg 안내, 정식 제품명, 클래스별 단축키 재구성, Person/Vehicle 수동 추적 + 스냅백 버그 수정
 - **코드베이스 맵**: `.planning/codebase/` 에 7개 분석 문서 존재
 - **추가된 파일**: `Helpers/SecurityHelper.cs` (PBKDF2-HMAC-SHA256), `Helpers/PathValidator.cs` (경로 트래버설 방지)
 - **해결된 주요 문제**:
@@ -103,4 +103,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-16 after Phase 3 completion*
+*Last updated: 2026-04-17 after Phase 4 completion*
