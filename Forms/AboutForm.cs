@@ -28,8 +28,8 @@ namespace ASLTv1.Forms
             // 프로그램 이름
             Label lblTitle = new Label
             {
-                Text = "ASLT v1.0",
-                Font = new Font("Segoe UI", 20F, FontStyle.Bold),
+                Text = "ANNA 합성데이터 라벨링 툴킷 (ASLT)v1.0",
+                Font = new Font("Segoe UI", 16F, FontStyle.Bold),
                 ForeColor = DarkTheme.Accent,
                 TextAlign = ContentAlignment.MiddleCenter,
                 Location = new Point(0, 20),
@@ -107,24 +107,12 @@ namespace ASLTv1.Forms
 
             var shortcuts = new[]
             {
+                // ── 공통 단축키 ──
                 ("Space", "재생/정지"),
                 ("1", "선택 모드"),
                 ("2", "그리기 모드"),
                 ("E", "Entry 마커"),
                 ("X", "Exit 마커 (웨이포인트 생성)"),
-                ("F1 / F2 / F3", "Person / Vehicle / Event 선택"),
-                ("Ctrl+1 ~ Ctrl+0", "ID 지정 (1~10)"),
-                ("Alt+1 ~ Alt+0", "ID 지정 (11~20)"),
-                ("F3 + Ctrl+1", "위험물체 (event_hazard)"),
-                ("F3 + Ctrl+2", "사고 (event_accident)"),
-                ("F3 + Ctrl+3", "파손 (event_damage)"),
-                ("F3 + Ctrl+4", "화재 (event_fire)"),
-                ("F3 + Ctrl+5", "무단침입 (event_intrusion)"),
-                ("F3 + Ctrl+6", "누수 (event_leak)"),
-                ("F3 + Ctrl+7", "고장 (event_failure)"),
-                ("F3 + Ctrl+8", "분실물 (event_lost_object)"),
-                ("F3 + Ctrl+9", "쓰러짐 (event_fall)"),
-                ("F3 + Ctrl+0", "이상행동 (event_abnormal_behavior)"),
                 ("Tab", "박스 순환 선택"),
                 ("W / A / S / D", "선택된 박스 이동"),
                 ("Delete / G", "선택된 박스 삭제"),
@@ -137,10 +125,43 @@ namespace ASLTv1.Forms
                 ("Shift+> / Shift+<", "배속 증가/감소"),
                 ("C", "자막 토글"),
                 ("Escape", "선택 해제"),
+                ("", ""),
+                // ── Person 클래스 (F1) ──
+                ("F1", "Person 클래스 선택"),
+                ("F1 + Ctrl+1~0", "Person ID 지정 (1~10)"),
+                ("F1 + Alt+1~0", "Person ID 지정 (11~20)"),
+                ("", ""),
+                // ── Vehicle 클래스 (F2) ──
+                ("F2", "Vehicle 클래스 선택"),
+                ("F2 + Ctrl+1", "승용차 (car)"),
+                ("F2 + Ctrl+2", "오토바이 (motorcycle)"),
+                ("F2 + Ctrl+3", "전동킥보드 (e_scooter)"),
+                ("F2 + Ctrl+4", "자전거 (bicycle)"),
+                ("", ""),
+                // ── Event 클래스 (F3) ──
+                ("F3", "Event 클래스 선택"),
+                ("F3 + Ctrl+1", "위험물체"),
+                ("F3 + Ctrl+2", "사고"),
+                ("F3 + Ctrl+3", "파손"),
+                ("F3 + Ctrl+4", "화재"),
+                ("F3 + Ctrl+5", "무단침입"),
+                ("F3 + Ctrl+6", "누수"),
+                ("F3 + Ctrl+7", "고장"),
+                ("F3 + Ctrl+8", "분실물"),
+                ("F3 + Ctrl+9", "쓰러짐"),
+                ("F3 + Ctrl+0", "이상행동"),
             };
 
             foreach (var (key, desc) in shortcuts)
             {
+                if (string.IsNullOrEmpty(key) && string.IsNullOrEmpty(desc))
+                {
+                    var separator = new ListViewItem(" ");
+                    separator.SubItems.Add(" ");
+                    separator.BackColor = DarkTheme.Background;
+                    lvShortcuts.Items.Add(separator);
+                    continue;
+                }
                 var item = new ListViewItem(key);
                 item.SubItems.Add(desc);
                 lvShortcuts.Items.Add(item);
