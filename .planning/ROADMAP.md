@@ -101,7 +101,10 @@ Plans:
   1. Windows 10/11 클린 환경에서 설치 후 추가 설정 없이 앱이 정상 실행된다
   2. FFmpeg 또는 .NET Runtime 미설치 시 구체적인 안내 메시지가 표시된다
   3. 제거 후 레지스트리 잔여 항목 및 파일이 남지 않는다
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 05-01-PLAN.md — csproj 메타데이터 + self-contained publish 파이프라인 (PORT-02)
+- [ ] 05-02-PLAN.md — Inno Setup 스크립트 + build.bat + README (PORT-01, PORT-03)
 
 ### Phase 6: 문서화
 **Goal**: 잠긴 바이너리와 완전히 일치하는 제품설명서 및 사용자취급설명서가 완성된다
@@ -124,5 +127,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 2. 안정성 기반 | 2/2 | Complete   | 2026-04-16 |
 | 3. 기능 정확성 + 보안 | 0/4 | Not started | - |
 | 4. 성능 + 사용성 | 0/3 | Not started | - |
-| 5. 이식성 | 0/TBD | Not started | - |
+| 5. 이식성 | 0/2 | Not started | - |
 | 6. 문서화 | 0/TBD | Not started | - |
