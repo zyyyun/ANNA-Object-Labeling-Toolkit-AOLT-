@@ -2,5 +2,6 @@ bin/
 obj/
 .claude/
 installer/Output/
+installer/ffmpeg/
 publish/
 *.user
