@@ -171,6 +171,19 @@ namespace ASLTv1.Forms
             listViewEventWaypoints.KeyDown += (s, ev) => HandleListViewKeyDown(s, ev);
 
             _videoService.SetupFFmpegPath();
+            if (!_videoService.IsFFmpegAvailable)
+            {
+                Log.Warning("FFmpeg 미설치 상태로 시작합니다.");
+                MessageBox.Show(
+                    "FFmpeg가 설치되지 않았습니다.\n\n" +
+                    "자막 추출 기능을 사용하려면 다음 중 하나를 수행하세요:\n" +
+                    "1. FFmpeg를 설치하고 시스템 PATH에 추가\n" +
+                    "2. 프로그램 폴더의 ffmpeg/ 하위에 ffmpeg.exe 배치\n\n" +
+                    "자막 추출 외 기능은 정상적으로 사용할 수 있습니다.",
+                    "FFmpeg 안내",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
 
             this.Resize += MainForm_Resize;
             UpdateMaximizeButtonIcon();

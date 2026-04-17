@@ -65,6 +65,8 @@ namespace ASLTv1.Services
 
         public bool IsVideoLoaded => videoCapture != null && videoCapture.IsOpened();
 
+        public bool IsFFmpegAvailable => isFFmpegAvailable;
+
         public int FrameWidth => videoCapture != null && videoCapture.IsOpened()
             ? (int)videoCapture.Get(VideoCaptureProperties.FrameWidth) : 0;
 
@@ -387,7 +389,10 @@ namespace ASLTv1.Services
         public async Task<bool> ExtractSrtFromVideoAsync(string videoPath)
         {
             if (!isFFmpegAvailable)
+            {
+                Log.Warning("FFmpeg 미설치로 자막 추출을 건너뜁니다: {VideoPath}", videoPath);
                 return false;
+            }
 
             try
             {
@@ -560,11 +565,14 @@ namespace ASLTv1.Services
                 else
                 {
                     isFFmpegAvailable = false;
+                    Log.Warning("FFmpeg를 찾을 수 없습니다. 자막 추출 기능이 비활성화됩니다. " +
+                                "PATH에 ffmpeg를 추가하거나 실행 폴더의 ffmpeg/ 하위에 ffmpeg.exe를 배치하세요.");
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 isFFmpegAvailable = false;
+                Log.Warning(ex, "FFmpeg를 찾을 수 없습니다. 자막 추출 기능이 비활성화됩니다.");
             }
         }
 
