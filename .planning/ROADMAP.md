@@ -104,7 +104,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 05-01-PLAN.md — csproj 메타데이터 + self-contained publish 파이프라인 (PORT-02)
-- [ ] 05-02-PLAN.md — Inno Setup 스크립트 + build.bat + README (PORT-01, PORT-03)
+- [x] 05-02-PLAN.md — Inno Setup 스크립트 + build.bat + README (PORT-01, PORT-03)
 
 ### Phase 6: 문서화
 **Goal**: 잠긴 바이너리와 완전히 일치하는 제품설명서 및 사용자취급설명서가 완성된다

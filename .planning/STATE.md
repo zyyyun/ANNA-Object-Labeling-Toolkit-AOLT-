@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-04-17T04:18:04.685Z"
+stopped_at: Completed 05-02-PLAN.md
+last_updated: "2026-04-17T04:21:53.087Z"
 last_activity: 2026-04-17 -- Phase null execution started
 progress:
   total_phases: 6
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 12
-  completed_plans: 11
+  completed_plans: 12
   percent: 80
 ---
 
@@ -61,6 +61,7 @@ Progress: [████████░░] 80%
 | Phase 04 P02 | 6 | 2 tasks | 2 files |
 | Phase 04 P03 | 10분 | 2 tasks | 3 files |
 | Phase 05 P01 | 4min | 2 tasks | 3 files |
+| Phase 05 P02 | ~5 minutes | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -83,6 +84,7 @@ Recent decisions affecting current work:
 - [Phase 04]: FFmpeg 미설치 안내는 시작 시 1회 MessageBox + 이후 시도마다 Log.Warning — 반복 방해 없이 관측성 유지
 - [Phase 04]: USAB-05: Undo/Redo UI 버튼 미존재 — 해당없음 처리 (키보드 단축키만 제공)
 - [Phase 05]: Adopt SelfContained+RuntimeIdentifier csproj defaults; publish yields 250MB win-x64 self-contained artifact
+- [Phase 05]: AppId pinned to fixed GUID for in-place 1.0.x upgrades; no custom [Registry] or SignTool directives (clean uninstall per D-14, no signing per D-10).
 
 ### Pending Todos
 
@@ -94,6 +96,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-17T04:18:04.681Z
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-04-17T04:21:53.082Z
+Stopped at: Completed 05-02-PLAN.md
 Resume file: None
