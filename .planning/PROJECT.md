@@ -57,7 +57,7 @@ GS인증 1등급 통과를 위한 개선 항목:
 
 - **기술 스택**: C# / .NET 8.0 / WinForms / OpenCvSharp4 / FFMpegCore / Newtonsoft.Json
 - **코드 규모**: MainForm.cs 약 2,500줄 단일 클래스 + Services/Models/Helpers/Theme 계층
-- **현재 상태**: Phase 5 완료 — Inno Setup 기반 self-contained Windows x64 설치 패키지, FFmpeg 번들, 클린 언인스톨
+- **현재 상태**: Phase 5.5 완료 — Waypoint 선택 시 Entry/Exit 버튼 프레임 이동 + 영상 로드 중 타임라인 가드. 잠긴 바이너리 기능 완성.
 - **코드베이스 맵**: `.planning/codebase/` 에 7개 분석 문서 존재
 - **추가된 파일**: `Helpers/SecurityHelper.cs` (PBKDF2-HMAC-SHA256), `Helpers/PathValidator.cs` (경로 트래버설 방지)
 - **해결된 주요 문제**:
@@ -103,4 +103,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-17 after Phase 5 completion*
+*Last updated: 2026-04-17 after Phase 5.5 completion*
