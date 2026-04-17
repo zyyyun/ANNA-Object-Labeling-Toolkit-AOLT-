@@ -73,6 +73,7 @@ namespace ASLTv1.Forms
         private int? entryFrameIndex;
         private int? exitFrameIndex;
         private bool suppressWaypointClickOnce;
+        private bool _isDirty = false;
 
         #endregion
 
@@ -237,6 +238,18 @@ namespace ASLTv1.Forms
 
                 if (ofd.ShowDialog() == DialogResult.OK)
                 {
+                    if (_isDirty && _videoService != null && _videoService.IsVideoLoaded)
+                    {
+                        var result = MessageBox.Show(
+                            "저장하지 않은 편집이 있습니다. 저장 후 전환하시겠습니까?",
+                            "저장 확인",
+                            MessageBoxButtons.YesNoCancel,
+                            MessageBoxIcon.Warning);
+                        if (result == DialogResult.Yes)
+                            SaveCurrentLabelingData();
+                        else if (result == DialogResult.Cancel)
+                            return;
+                    }
                     await LoadVideoWithSubtitle(ofd.FileName);
                 }
             }
@@ -268,6 +281,9 @@ namespace ASLTv1.Forms
                     MessageBox.Show("Failed to open video file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
+
+                // Reset dirty state on successful video load (USAB-02)
+                _isDirty = false;
 
                 // Show first frame
                 var bitmap = _videoService.LoadFrame(0);
@@ -652,6 +668,7 @@ namespace ASLTv1.Forms
                 _videoService);
 
             currentJsonFile = savePath;
+            _isDirty = false;
         }
 
         private void btnDeleteJson_Click(object sender, EventArgs e)
@@ -2101,6 +2118,7 @@ namespace ASLTv1.Forms
 
         private void AddUndoAction(UndoAction action)
         {
+            _isDirty = true;
             undoStack.Push(action);
             // PERF-03: Enforce MAX_UNDO_STACK limit - removes oldest (bottom) entry
             if (undoStack.Count > MAX_UNDO_STACK)
@@ -2844,6 +2862,23 @@ namespace ASLTv1.Forms
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
+            if (_isDirty && _videoService != null && _videoService.IsVideoLoaded)
+            {
+                var result = MessageBox.Show(
+                    "저장하지 않은 변경사항이 있습니다. 저장하시겠습니까?",
+                    "저장 확인",
+                    MessageBoxButtons.YesNoCancel,
+                    MessageBoxIcon.Warning);
+                if (result == DialogResult.Yes)
+                {
+                    SaveCurrentLabelingData();
+                }
+                else if (result == DialogResult.Cancel)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+            }
             base.OnFormClosing(e);
             doubleClickTimer?.Dispose();
             doubleClickTimer = null;
