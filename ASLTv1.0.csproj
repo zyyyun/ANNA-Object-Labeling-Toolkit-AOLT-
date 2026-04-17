@@ -12,6 +12,17 @@
     <AssemblyName>ASLTv1</AssemblyName>
     <Version>1.0.0</Version>
     <Product>ASLT - ANNA Synthetic data Labeling Toolkit</Product>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <InformationalVersion>1.0.0</InformationalVersion>
+    <Company>ANNA</Company>
+    <Authors>ANNA</Authors>
+    <Copyright>Copyright © ANNA 2026</Copyright>
+    <AssemblyTitle>ANNA 합성데이터 라벨링 툴킷 (ASLT)</AssemblyTitle>
+    <Description>ANNA Synthetic data Labeling Toolkit - COCO format annotation tool for traffic video analysis</Description>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishSingleFile>false</PublishSingleFile>
   </PropertyGroup>
 
   <ItemGroup>
