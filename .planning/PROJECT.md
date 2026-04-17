@@ -43,7 +43,7 @@ GS인증 1등급 통과를 위한 개선 항목:
 - [x] 보안성: 감사 추적 — 사용자 활동 로그 기록 (Phase 1 완료)
 - [x] 유지보수성: 구조화된 로그 시스템 구축 (파일 기반 로그) (Phase 1 완료)
 - [x] 유지보수성: 예외 처리 체계화 (generic catch → 구체적 예외) (Phase 3 완료)
-- [ ] 이식성: 명시된 설치 환경에서 정상 설치/실행 보장
+- [x] 이식성: 명시된 설치 환경에서 정상 설치/실행 보장 (Phase 5 완료 — 클린 VM 수동 검증 필요)
 
 ### Out of Scope
 
@@ -57,7 +57,7 @@ GS인증 1등급 통과를 위한 개선 항목:
 
 - **기술 스택**: C# / .NET 8.0 / WinForms / OpenCvSharp4 / FFMpegCore / Newtonsoft.Json
 - **코드 규모**: MainForm.cs 약 2,500줄 단일 클래스 + Services/Models/Helpers/Theme 계층
-- **현재 상태**: Phase 4 완료 — O(1) 딕셔너리 bbox 인덱싱, 21개 툴팁, isDirty 미저장 경고, FFmpeg 안내, 정식 제품명, 클래스별 단축키 재구성, Person/Vehicle 수동 추적 + 스냅백 버그 수정
+- **현재 상태**: Phase 5 완료 — Inno Setup 기반 self-contained Windows x64 설치 패키지, FFmpeg 번들, 클린 언인스톨
 - **코드베이스 맵**: `.planning/codebase/` 에 7개 분석 문서 존재
 - **추가된 파일**: `Helpers/SecurityHelper.cs` (PBKDF2-HMAC-SHA256), `Helpers/PathValidator.cs` (경로 트래버설 방지)
 - **해결된 주요 문제**:
@@ -103,4 +103,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-17 after Phase 4 completion*
+*Last updated: 2026-04-17 after Phase 5 completion*
