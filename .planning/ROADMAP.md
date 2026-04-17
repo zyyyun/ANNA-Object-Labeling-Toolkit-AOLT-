@@ -118,7 +118,7 @@ Plans:
   5. Person/Vehicle 수동 추적 중에도 로드 경합이 발생하지 않는다
 **Plans**: 1 plan
 Plans:
-- [ ] 05.5-01-PLAN.md — Entry/Exit 버튼 이중 기능 분기 (USAB-09) + 타임라인 로드 가드 (RELI-06)
+- [x] 05.5-01-PLAN.md — Entry/Exit 버튼 이중 기능 분기 (USAB-09) + 타임라인 로드 가드 (RELI-06)
 
 ### Phase 6: 문서화
 **Goal**: 잠긴 바이너리와 완전히 일치하는 제품설명서 및 사용자취급설명서가 완성된다

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-04-17T04:21:53.087Z"
+stopped_at: Completed 05.5-01-PLAN.md
+last_updated: "2026-04-17T06:44:02.207Z"
 last_activity: 2026-04-17 -- Phase null execution started
 progress:
-  total_phases: 6
-  completed_phases: 5
-  total_plans: 12
-  completed_plans: 12
+  total_phases: 7
+  completed_phases: 6
+  total_plans: 13
+  completed_plans: 13
   percent: 80
 ---
 
@@ -62,6 +62,7 @@ Progress: [████████░░] 80%
 | Phase 04 P03 | 10분 | 2 tasks | 3 files |
 | Phase 05 P01 | 4min | 2 tasks | 3 files |
 | Phase 05 P02 | ~5 minutes | 3 tasks | 4 files |
+| Phase 05.5 P01 | 2min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,8 @@ Recent decisions affecting current work:
 - [Phase 04]: USAB-05: Undo/Redo UI 버튼 미존재 — 해당없음 처리 (키보드 단축키만 제공)
 - [Phase 05]: Adopt SelfContained+RuntimeIdentifier csproj defaults; publish yields 250MB win-x64 self-contained artifact
 - [Phase 05]: AppId pinned to fixed GUID for in-place 1.0.x upgrades; no custom [Registry] or SignTool directives (clean uninstall per D-14, no signing per D-10).
+- [Phase 05.5]: Waypoint 선택 상태 감지로 Entry/Exit 버튼 이중 기능 구현 (USAB-09)
+- [Phase 05.5]: !_videoService.IsVideoLoaded 단일 가드로 타임라인 경합 방지 (RELI-06)
 
 ### Pending Todos
 
@@ -96,6 +99,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-17T04:21:53.082Z
-Stopped at: Completed 05-02-PLAN.md
+Last session: 2026-04-17T06:44:02.201Z
+Stopped at: Completed 05.5-01-PLAN.md
 Resume file: None
