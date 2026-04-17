@@ -27,6 +27,7 @@ namespace ASLTv1.Forms
         private const int MIN_BBOX_SIZE = 10;
         private const int MAX_UNDO_STACK = 100;
         private const int RESIZE_BORDER_WIDTH = 6;
+        private const int HIT_MARGIN = 4;
 
         #endregion
 
@@ -41,6 +42,7 @@ namespace ASLTv1.Forms
         #region Annotation State
 
         private List<BoundingBox> boundingBoxes = new List<BoundingBox>();
+        private Dictionary<int, List<BoundingBox>> _bboxByFrame = null;
         private BoundingBox selectedBox;
         private BoundingBox drawingBox;
         private List<WaypointMarker> waypointMarkers = new List<WaypointMarker>();
@@ -884,8 +886,8 @@ namespace ASLTv1.Forms
                 return;
             }
 
-            var entryPersonBoxes = boundingBoxes.Where(b => b.FrameIndex == entryFrameIndex.Value && b.Label == "person").ToList();
-            var entryVehicleBoxes = boundingBoxes.Where(b => b.FrameIndex == entryFrameIndex.Value && b.Label == "vehicle").ToList();
+            var entryPersonBoxes = GetBboxesForFrame(entryFrameIndex.Value).Where(b => b.Label == "person").ToList();
+            var entryVehicleBoxes = GetBboxesForFrame(entryFrameIndex.Value).Where(b => b.Label == "vehicle").ToList();
             var eventBoxesInRange = boundingBoxes
                 .Where(b => b.Label == "event" && b.FrameIndex >= entryFrameIndex.Value && b.FrameIndex <= currentFrameIndex).ToList();
 
@@ -896,8 +898,8 @@ namespace ASLTv1.Forms
             }
 
             // FUNC-06: Entry-Exit 프레임 간 객체 ID 불일치 감지 및 경고
-            var exitPersonBoxes = boundingBoxes.Where(b => b.FrameIndex == currentFrameIndex && b.Label == "person" && !b.IsDeleted).ToList();
-            var exitVehicleBoxes = boundingBoxes.Where(b => b.FrameIndex == currentFrameIndex && b.Label == "vehicle" && !b.IsDeleted).ToList();
+            var exitPersonBoxes = GetBboxesForFrame(currentFrameIndex).Where(b => b.Label == "person" && !b.IsDeleted).ToList();
+            var exitVehicleBoxes = GetBboxesForFrame(currentFrameIndex).Where(b => b.Label == "vehicle" && !b.IsDeleted).ToList();
             var mismatchMessages = new List<string>();
             foreach (var entryBox in entryPersonBoxes)
             {
@@ -1288,7 +1290,7 @@ namespace ASLTv1.Forms
 
             if (lastCachedFrameForPaint != currentFrameIndex)
             {
-                cachedCurrentFrameBoxes = boundingBoxes.Where(b => b.FrameIndex == currentFrameIndex).ToList();
+                cachedCurrentFrameBoxes = GetBboxesForFrame(currentFrameIndex);
                 lastCachedFrameForPaint = currentFrameIndex;
             }
 
@@ -1650,13 +1652,12 @@ namespace ASLTv1.Forms
         {
             var imageLocation = CoordinateHelper.ViewToImage(new PointF(location.X, location.Y), pictureBoxVideo);
             int currentFrameIndex = _videoService.CurrentFrameIndex;
-            var currentFrameBoxes = boundingBoxes.Where(b => b.FrameIndex == currentFrameIndex && !b.IsDeleted).ToList();
-            const int hitMargin = 4;
+            var currentFrameBoxes = GetBboxesForFrame(currentFrameIndex).Where(b => !b.IsDeleted).ToList();
 
             var candidates = new List<(BoundingBox box, bool inActiveWaypoint, int labelPri, double dist, int area, int zIndex)>();
             foreach (var box in currentFrameBoxes)
             {
-                var r = box.Rectangle; r.Inflate(hitMargin, hitMargin);
+                var r = box.Rectangle; r.Inflate(HIT_MARGIN, HIT_MARGIN);
                 if (!r.Contains((int)imageLocation.X, (int)imageLocation.Y)) continue;
 
                 bool inActiveWaypoint = selectedWaypoint != null &&
@@ -1688,11 +1689,10 @@ namespace ASLTv1.Forms
         {
             var imageLocation = CoordinateHelper.ViewToImage(new PointF(viewLocation.X, viewLocation.Y), pictureBoxVideo);
             int currentFrameIndex = _videoService.CurrentFrameIndex;
-            const int hitMargin = 4;
-            foreach (var box in boundingBoxes.Where(b => b.FrameIndex == currentFrameIndex && !b.IsDeleted))
+            foreach (var box in GetBboxesForFrame(currentFrameIndex).Where(b => !b.IsDeleted))
             {
                 if (box == exclude) continue;
-                var r = box.Rectangle; r.Inflate(hitMargin, hitMargin);
+                var r = box.Rectangle; r.Inflate(HIT_MARGIN, HIT_MARGIN);
                 if (r.Contains((int)imageLocation.X, (int)imageLocation.Y)) return true;
             }
             return false;
@@ -1702,12 +1702,11 @@ namespace ASLTv1.Forms
         {
             var imageLocation = CoordinateHelper.ViewToImage(new PointF(viewLocation.X, viewLocation.Y), pictureBoxVideo);
             int currentFrameIndex = _videoService.CurrentFrameIndex;
-            const int hitMargin = 4;
             var candidates = new List<(BoundingBox box, int labelPri, double dist, int area, int zIndex)>();
 
-            foreach (var box in boundingBoxes.Where(b => b.FrameIndex == currentFrameIndex && !b.IsDeleted))
+            foreach (var box in GetBboxesForFrame(currentFrameIndex).Where(b => !b.IsDeleted))
             {
-                var r = box.Rectangle; r.Inflate(hitMargin, hitMargin);
+                var r = box.Rectangle; r.Inflate(HIT_MARGIN, HIT_MARGIN);
                 if (!r.Contains((int)imageLocation.X, (int)imageLocation.Y)) continue;
                 int labelPri = GetLabelPriority(box.Label);
                 double cx = box.Rectangle.X + box.Rectangle.Width / 2.0;
@@ -2583,7 +2582,32 @@ namespace ASLTv1.Forms
             labelBoxCount.Text = $"박스: {count}";
         }
 
-        private void InvalidateBoxCache() => lastCachedFrameForPaint = -1;
+        private void InvalidateBoxCache()
+        {
+            lastCachedFrameForPaint = -1;
+            _bboxByFrame = null;
+        }
+
+        private void RebuildBboxIndex()
+        {
+            _bboxByFrame = new Dictionary<int, List<BoundingBox>>();
+            foreach (var box in boundingBoxes)
+            {
+                if (!_bboxByFrame.TryGetValue(box.FrameIndex, out var list))
+                {
+                    list = new List<BoundingBox>();
+                    _bboxByFrame[box.FrameIndex] = list;
+                }
+                list.Add(box);
+            }
+        }
+
+        private List<BoundingBox> GetBboxesForFrame(int frameIndex)
+        {
+            if (_bboxByFrame == null)
+                RebuildBboxIndex();
+            return _bboxByFrame.TryGetValue(frameIndex, out var list) ? list : new List<BoundingBox>();
+        }
 
         private WaypointMarker FindWaypointForBox(BoundingBox box)
         {
@@ -2634,7 +2658,7 @@ namespace ASLTv1.Forms
         {
             // Simplified: update sidebar list panels
             int currentFrameIndex = _videoService.IsVideoLoaded ? _videoService.CurrentFrameIndex : 0;
-            var frameBoxes = boundingBoxes.Where(b => b.FrameIndex == currentFrameIndex && !b.IsDeleted).ToList();
+            var frameBoxes = GetBboxesForFrame(currentFrameIndex).Where(b => !b.IsDeleted).ToList();
 
             UpdateBboxPanel(panelPersonList, frameBoxes.Where(b => b.Label == "person").ToList());
             UpdateBboxPanel(panelVehicleList, frameBoxes.Where(b => b.Label == "vehicle").ToList());
