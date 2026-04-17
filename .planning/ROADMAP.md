@@ -106,9 +106,21 @@ Plans:
 - [x] 05-01-PLAN.md — csproj 메타데이터 + self-contained publish 파이프라인 (PORT-02)
 - [x] 05-02-PLAN.md — Inno Setup 스크립트 + build.bat + README (PORT-01, PORT-03)
 
+### Phase 5.5: 기능 보정 + 안정화
+**Goal**: Waypoint 탐색 편의와 영상 로드 경합 가드가 적용되어 잠긴 바이너리 기능이 완성된다
+**Depends on**: Phase 5
+**Requirements**: USAB-09, RELI-06
+**Success Criteria** (what must be TRUE):
+  1. Waypoint 선택 상태에서 Entry 버튼 클릭 시 해당 Waypoint의 Entry 프레임으로 즉시 이동한다
+  2. Waypoint 선택 상태에서 Exit 버튼 클릭 시 해당 Waypoint의 Exit 프레임으로 즉시 이동한다
+  3. Waypoint 미선택 상태에서는 기존대로 현재 프레임이 Entry/Exit로 지정된다 (기능 공존)
+  4. 영상 로드 중에는 타임라인 클릭/드래그가 무시되어 렉/크래시가 발생하지 않는다
+  5. Person/Vehicle 수동 추적 중에도 로드 경합이 발생하지 않는다
+**Plans**: TBD
+
 ### Phase 6: 문서화
 **Goal**: 잠긴 바이너리와 완전히 일치하는 제품설명서 및 사용자취급설명서가 완성된다
-**Depends on**: Phase 5
+**Depends on**: Phase 5.5
 **Requirements**: DOC-01, DOC-02, DOC-03
 **Success Criteria** (what must be TRUE):
   1. 제품설명서에 버전, 연동 제품 정보, 시스템 요구사항이 명시된다
@@ -119,13 +131,14 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 5.5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. 로그 인프라 | 1/1 | Complete   | 2026-04-16 |
 | 2. 안정성 기반 | 2/2 | Complete   | 2026-04-16 |
-| 3. 기능 정확성 + 보안 | 0/4 | Not started | - |
-| 4. 성능 + 사용성 | 0/3 | Not started | - |
-| 5. 이식성 | 0/2 | Not started | - |
+| 3. 기능 정확성 + 보안 | 4/4 | Complete   | 2026-04-16 |
+| 4. 성능 + 사용성 | 3/3 | Complete   | 2026-04-17 |
+| 5. 이식성 | 2/2 | Complete   | 2026-04-17 |
+| 5.5. 기능 보정 + 안정화 | 0/TBD | Not started | - |
 | 6. 문서화 | 0/TBD | Not started | - |
