@@ -80,6 +80,12 @@ namespace ASLTv1.Forms
             // Timer
             this.timerPlayback = new System.Windows.Forms.Timer(this.components);
 
+            // ToolTip (USAB-01)
+            this.toolTipMain = new System.Windows.Forms.ToolTip(this.components);
+            this.toolTipMain.AutoPopDelay = 5000;
+            this.toolTipMain.InitialDelay = 500;
+            this.toolTipMain.ReshowDelay = 100;
+
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxVideo)).BeginInit();
             this.SuspendLayout();
 
@@ -101,12 +107,12 @@ namespace ASLTv1.Forms
             this.panelHeader.Controls.Add(this.btnMaximize);
             this.panelHeader.Controls.Add(this.btnClose);
 
-            // Title
-            this.labelTitle.Text = "ASLT v1.0";
-            this.labelTitle.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
+            // Title (USAB-06: 정식 제품명 표시)
+            this.labelTitle.Text = "ANNA 합성데이터 라벨링 툴킷 (ASLT)v1.0";
+            this.labelTitle.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.labelTitle.ForeColor = System.Drawing.Color.FromArgb(212, 212, 212);
             this.labelTitle.Location = new System.Drawing.Point(15, 12);
-            this.labelTitle.Size = new System.Drawing.Size(150, 25);
+            this.labelTitle.Size = new System.Drawing.Size(350, 25);
 
             // File Select Button
             this.btnSelectFolder.Text = "파일 선택";
@@ -728,6 +734,29 @@ namespace ASLTv1.Forms
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.MainForm_KeyDown);
             this.Load += new System.EventHandler(this.MainForm_Load);
 
+            // ToolTip bindings (USAB-01)
+            this.toolTipMain.SetToolTip(this.btnSelectFolder, "영상 파일 선택 (비디오 열기)");
+            this.toolTipMain.SetToolTip(this.btnExportJson, "JSON 저장 (Ctrl+S)");
+            this.toolTipMain.SetToolTip(this.btnDeleteJson, "JSON 삭제");
+            this.toolTipMain.SetToolTip(this.btnAbout, "프로그램 정보 및 단축키");
+            this.toolTipMain.SetToolTip(this.btnMinimize, "최소화");
+            this.toolTipMain.SetToolTip(this.btnMaximize, "최대화/복원");
+            this.toolTipMain.SetToolTip(this.btnClose, "닫기");
+            this.toolTipMain.SetToolTip(this.btnSelectAll, "전체 선택");
+            this.toolTipMain.SetToolTip(this.btnEdit, "편집 모드");
+            this.toolTipMain.SetToolTip(this.btnPlay, "재생/정지 (Space)");
+            this.toolTipMain.SetToolTip(this.btnRewind, "되감기");
+            this.toolTipMain.SetToolTip(this.btnForward, "앞으로");
+            this.toolTipMain.SetToolTip(this.btnEntry, "Entry 마커 (E)");
+            this.toolTipMain.SetToolTip(this.btnExit, "Exit 마커 (X)");
+            this.toolTipMain.SetToolTip(this.btnToggleSubtitle, "자막 토글 (C)");
+            this.toolTipMain.SetToolTip(this.btnLabelPerson, "Person 라벨 (F1)");
+            this.toolTipMain.SetToolTip(this.btnLabelVehicle, "Vehicle 라벨 (F2)");
+            this.toolTipMain.SetToolTip(this.btnLabelEvent, "Event 라벨 (F3)");
+            this.toolTipMain.SetToolTip(this.btnDeleteLabel, "선택 라벨 삭제 (Delete)");
+            this.toolTipMain.SetToolTip(this.btnExportJsonInLabels, "라벨 데이터 JSON 저장");
+            this.toolTipMain.SetToolTip(this.btnDeleteEventWaypoint, "선택한 Waypoint 삭제");
+
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxVideo)).EndInit();
             this.ResumeLayout(false);
         }
@@ -805,5 +834,8 @@ namespace ASLTv1.Forms
 
         // Timer
         private System.Windows.Forms.Timer timerPlayback;
+
+        // ToolTip (USAB-01)
+        private System.Windows.Forms.ToolTip toolTipMain;
     }
 }
