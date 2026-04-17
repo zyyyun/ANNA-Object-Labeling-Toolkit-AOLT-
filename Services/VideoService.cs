@@ -142,7 +142,8 @@ namespace ASLTv1.Services
             fps = videoCapture.Get(VideoCaptureProperties.Fps);
             currentFrameIndex = 0;
 
-            // NOTE: 첫 프레임 로드는 MainForm.LoadVideoWithSubtitle 에서 수행한다 (중복 seek 방지, RELI-06).
+            LoadFrame(0);
+
             VideoLoaded?.Invoke(this, filePath);
 
             // Attempt to load SRT subtitle

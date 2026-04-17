@@ -74,11 +74,6 @@ namespace ASLTv1.Forms
         private int? exitFrameIndex;
         private bool suppressWaypointClickOnce;
         private bool _isDirty = false;
-        // RELI-06 (Phase 5.5 gap closure): 첫 프레임 페인트 + LoadLabelingData 완료까지 false.
-        // 타임라인 외 모든 LoadFrame 경로에서 이 플래그로 early-return 한다.
-        private bool _isVideoReady;
-        // 자동 재생을 first-paint 이후로 연기하기 위한 one-shot 플래그.
-        private bool _pendingAutoPlay;
 
         #endregion
 
@@ -281,10 +276,6 @@ namespace ASLTv1.Forms
             _videoLoadCts = new CancellationTokenSource();
             var token = _videoLoadCts.Token;
 
-            // 로드 시작 — 가드 플래그 초기화 (RELI-06 gap closure)
-            _isVideoReady = false;
-            _pendingAutoPlay = false;
-
             // Stop playback before loading new video (PERF-02)
             if (isPlaying)
             {
@@ -324,9 +315,11 @@ namespace ASLTv1.Forms
                 // Load JSON
                 await LoadLabelingData(filePath);
 
-                // RELI-06 (gap closure): 자동 재생을 first-paint handshake 로 연기.
-                // _isVideoReady 는 pictureBoxVideo.Paint 에서 첫 프레임이 실제 페인트된 직후 true 로 전이된다.
-                _pendingAutoPlay = true;
+                // Auto play
+                if (!isPlaying)
+                {
+                    btnPlay_Click(null, EventArgs.Empty);
+                }
             }
             catch (OperationCanceledException)
             {
@@ -365,9 +358,6 @@ namespace ASLTv1.Forms
             try
             {
                 if (!_videoService.IsVideoLoaded) return;
-                // RELI-06 (gap closure): cold-decoder 기간 LoadFrame 차단.
-                // 첫 프레임이 페인트되기 전에는 어떠한 seek 도 수행하지 않는다.
-                if (!_isVideoReady) return;
                 if (frameIndex < 0 || frameIndex >= _videoService.TotalFrames) return;
 
                 var bitmap = _videoService.LoadFrame(frameIndex);
@@ -783,9 +773,6 @@ namespace ASLTv1.Forms
 
         private void timerPlayback_Tick(object sender, EventArgs e)
         {
-            // RELI-06 (gap closure): 첫 프레임 페인트 전 틱 무시 (cold-decoder 보호).
-            if (!_isVideoReady) return;
-
             long currentTime = DateTime.Now.Ticks / 10000;
             long elapsedMs = currentTime - lastFrameTime;
 
@@ -809,8 +796,6 @@ namespace ASLTv1.Forms
 
         private void btnRewind_Click(object sender, EventArgs e)
         {
-            // RELI-06 (gap closure)
-            if (!_isVideoReady) return;
             int framesToMove = (int)(_videoService.Fps * 5);
             int newFrame = Math.Max(0, _videoService.CurrentFrameIndex - framesToMove);
             LoadFrame(newFrame);
@@ -818,8 +803,6 @@ namespace ASLTv1.Forms
 
         private void btnForward_Click(object sender, EventArgs e)
         {
-            // RELI-06 (gap closure)
-            if (!_isVideoReady) return;
             int framesToMove = (int)(_videoService.Fps * 5);
             int newFrame = Math.Min(_videoService.TotalFrames - 1, _videoService.CurrentFrameIndex + framesToMove);
             LoadFrame(newFrame);
@@ -1128,8 +1111,6 @@ namespace ASLTv1.Forms
 
         private void listViewPersonWaypoints_Click(object sender, EventArgs e)
         {
-            // RELI-06 (gap closure)
-            if (!_isVideoReady) return;
             if (suppressWaypointClickOnce) { suppressWaypointClickOnce = false; return; }
             if (listViewPersonWaypoints.SelectedItems.Count > 0)
             {
@@ -1146,8 +1127,6 @@ namespace ASLTv1.Forms
 
         private void listViewVehicleWaypoints_Click(object sender, EventArgs e)
         {
-            // RELI-06 (gap closure)
-            if (!_isVideoReady) return;
             if (suppressWaypointClickOnce) { suppressWaypointClickOnce = false; return; }
             if (listViewVehicleWaypoints.SelectedItems.Count > 0)
             {
@@ -1164,8 +1143,6 @@ namespace ASLTv1.Forms
 
         private void listViewEventWaypoints_Click(object sender, EventArgs e)
         {
-            // RELI-06 (gap closure)
-            if (!_isVideoReady) return;
             if (suppressWaypointClickOnce) { suppressWaypointClickOnce = false; return; }
             if (listViewEventWaypoints.SelectedItems.Count > 0)
             {
@@ -1383,21 +1360,6 @@ namespace ASLTv1.Forms
                 Color boxColor = GetColorForLabel(drawingBox.Label);
                 using (Pen pen = new Pen(boxColor, 3) { DashStyle = DashStyle.Dash })
                     g.DrawRectangle(pen, viewRect.X, viewRect.Y, viewRect.Width, viewRect.Height);
-            }
-
-            // RELI-06 (gap closure): 첫 프레임이 실제로 화면에 페인트된 직후 한 번만 ready 전이.
-            if (!_isVideoReady && _videoService.IsVideoLoaded && pictureBoxVideo.Image != null)
-            {
-                _isVideoReady = true;
-
-                if (_pendingAutoPlay)
-                {
-                    _pendingAutoPlay = false;
-                    if (!isPlaying)
-                    {
-                        btnPlay_Click(null, EventArgs.Empty);
-                    }
-                }
             }
         }
 
@@ -2152,8 +2114,6 @@ namespace ASLTv1.Forms
             // RELI-06: 영상 로드 완료 전 타임라인 입력 무시 (조용히 return, D-08)
             if (!_videoService.IsVideoLoaded) return;
             if (_videoService.TotalFrames == 0) return;
-            // RELI-06 (gap closure): cold-decoder 기간 보호 — first paint 전 입력 차단
-            if (!_isVideoReady) return;
 
             // 세그먼트 클릭 감지 먼저
             if (TryNavigateToMarker(e.X, e.Y))
@@ -2168,8 +2128,6 @@ namespace ASLTv1.Forms
         {
             // RELI-06: 영상 로드 완료 전 드래그 이동 무시
             if (!_videoService.IsVideoLoaded) return;
-            // RELI-06 (gap closure): cold-decoder 기간 보호 — first paint 전 입력 차단
-            if (!_isVideoReady) return;
             if (isTimelineDragging && _videoService.TotalFrames > 0)
                 UpdateFrameFromTimeline(e.X);
         }
@@ -2324,8 +2282,7 @@ namespace ASLTv1.Forms
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
             bool isVideoLoaded = _videoService.IsVideoLoaded;
-            // RELI-06 (gap closure): 로드 직후 화살표 seek 폭주 방지.
-            if (isVideoLoaded && _isVideoReady)
+            if (isVideoLoaded)
             {
                 if (keyData == (Keys.Shift | Keys.Left)) { LoadFrame(Math.Max(0, _videoService.CurrentFrameIndex - (int)(_videoService.Fps * 2))); return true; }
                 if (keyData == (Keys.Shift | Keys.Right)) { LoadFrame(Math.Min(_videoService.TotalFrames - 1, _videoService.CurrentFrameIndex + (int)(_videoService.Fps * 2))); return true; }
