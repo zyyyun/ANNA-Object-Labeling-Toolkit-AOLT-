@@ -812,7 +812,16 @@ namespace ASLTv1.Forms
 
         #region Entry/Exit Markers
 
-        private void btnEntry_Click(object sender, EventArgs e) => SetEntryMarker();
+        private void btnEntry_Click(object sender, EventArgs e)
+        {
+            // USAB-09: Waypoint 선택 상태이면 해당 EntryFrame으로 이동, 아니면 기존 지정 동작
+            if (selectedWaypoint != null)
+            {
+                LoadFrame(selectedWaypoint.EntryFrame);
+                return;
+            }
+            SetEntryMarker();
+        }
 
         private void SetEntryMarker()
         {
@@ -824,6 +833,12 @@ namespace ASLTv1.Forms
 
         private async void btnExit_Click(object sender, EventArgs e)
         {
+            // USAB-09: Waypoint 선택 상태이면 해당 ExitFrame으로 이동, 아니면 기존 지정 동작
+            if (selectedWaypoint != null)
+            {
+                LoadFrame(selectedWaypoint.ExitFrame);
+                return;
+            }
             try
             {
                 await SetExitMarkerAndCreateWaypoint();
@@ -2096,6 +2111,8 @@ namespace ASLTv1.Forms
 
         private void panelTimeline_MouseDown(object sender, MouseEventArgs e)
         {
+            // RELI-06: 영상 로드 완료 전 타임라인 입력 무시 (조용히 return, D-08)
+            if (!_videoService.IsVideoLoaded) return;
             if (_videoService.TotalFrames == 0) return;
 
             // 세그먼트 클릭 감지 먼저
@@ -2109,6 +2126,8 @@ namespace ASLTv1.Forms
 
         private void panelTimeline_MouseMove(object sender, MouseEventArgs e)
         {
+            // RELI-06: 영상 로드 완료 전 드래그 이동 무시
+            if (!_videoService.IsVideoLoaded) return;
             if (isTimelineDragging && _videoService.TotalFrames > 0)
                 UpdateFrameFromTimeline(e.X);
         }
