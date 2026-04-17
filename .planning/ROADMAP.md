@@ -103,7 +103,7 @@ Plans:
   3. 제거 후 레지스트리 잔여 항목 및 파일이 남지 않는다
 **Plans**: 2 plans
 Plans:
-- [ ] 05-01-PLAN.md — csproj 메타데이터 + self-contained publish 파이프라인 (PORT-02)
+- [x] 05-01-PLAN.md — csproj 메타데이터 + self-contained publish 파이프라인 (PORT-02)
 - [ ] 05-02-PLAN.md — Inno Setup 스크립트 + build.bat + README (PORT-01, PORT-03)
 
 ### Phase 6: 문서화
