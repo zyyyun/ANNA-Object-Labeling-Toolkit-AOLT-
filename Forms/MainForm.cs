@@ -74,6 +74,7 @@ namespace ASLTv1.Forms
         private int? exitFrameIndex;
         private bool suppressWaypointClickOnce;
         private bool _isDirty = false;
+        private bool _isVideoLoading;  // RELI-06: 영상 로드 중이면 true — UI 잠금 트리거
 
         #endregion
 
@@ -284,6 +285,14 @@ namespace ASLTv1.Forms
                 timerPlayback.Stop();
             }
 
+            // RELI-06: UI 잠금 + 로딩 라벨 표시
+            _isVideoLoading = true;
+            panelVideoControls.Enabled = false;
+            labelLoading.Visible = true;
+            CenterLoadingLabel();
+            labelLoading.BringToFront();
+            Application.DoEvents();
+
             try
             {
                 await _videoService.LoadVideoAsync(filePath, token);
@@ -351,6 +360,27 @@ namespace ASLTv1.Forms
                     $"해결 방법: 프로그램을 재시작하거나 다른 비디오 파일을 시도하세요.",
                     "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+            finally
+            {
+                // RELI-06: UI 잠금 해제 + 로딩 라벨 숨김 (성공/실패/취소 모두 커버)
+                _isVideoLoading = false;
+                if (!IsDisposed)
+                {
+                    labelLoading.Visible = false;
+                    panelVideoControls.Enabled = true;
+                }
+            }
+        }
+
+        /// <summary>
+        /// RELI-06: 로딩 라벨을 pictureBoxVideo 중앙에 배치.
+        /// </summary>
+        private void CenterLoadingLabel()
+        {
+            if (labelLoading == null || pictureBoxVideo == null) return;
+            labelLoading.Location = new System.Drawing.Point(
+                (pictureBoxVideo.Width - labelLoading.Width) / 2,
+                (pictureBoxVideo.Height - labelLoading.Height) / 2);
         }
 
         private void LoadFrame(int frameIndex)
@@ -773,6 +803,9 @@ namespace ASLTv1.Forms
 
         private void timerPlayback_Tick(object sender, EventArgs e)
         {
+            // RELI-06: 영상 로드 중에는 타이머 틱 무시 (타이머 Stop과 중복 방어)
+            if (_isVideoLoading) return;
+
             long currentTime = DateTime.Now.Ticks / 10000;
             long elapsedMs = currentTime - lastFrameTime;
 
@@ -1672,6 +1705,8 @@ namespace ASLTv1.Forms
             {
                 labelSubtitleTimestamp.Location = new System.Drawing.Point(50, pictureBoxVideo.Height - labelSubtitleTimestamp.Height - 30);
             }
+            // RELI-06: 로딩 라벨 중앙 유지
+            CenterLoadingLabel();
         }
 
         private void panelVideoControls_Resize(object sender, EventArgs e)

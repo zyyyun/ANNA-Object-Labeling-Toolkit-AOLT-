@@ -285,6 +285,21 @@ namespace ASLTv1.Forms
             this.labelSubtitleTimestamp.Text = "";
             this.labelSubtitleTimestamp.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
             this.pictureBoxVideo.Controls.Add(this.labelSubtitleTimestamp);
+
+            //
+            // labelLoading (RELI-06: 영상 로드 중 표시)
+            //
+            this.labelLoading = new System.Windows.Forms.Label();
+            this.labelLoading.Text = "영상 로드 중...";
+            this.labelLoading.Font = new System.Drawing.Font("Segoe UI", 18F, System.Drawing.FontStyle.Bold);
+            this.labelLoading.ForeColor = System.Drawing.Color.FromArgb(240, 240, 240);
+            this.labelLoading.BackColor = System.Drawing.Color.FromArgb(20, 20, 20);
+            this.labelLoading.AutoSize = true;
+            this.labelLoading.Padding = new System.Windows.Forms.Padding(20, 12, 20, 12);
+            this.labelLoading.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.labelLoading.Visible = false;
+            this.pictureBoxVideo.Controls.Add(this.labelLoading);
+
             this.pictureBoxVideo.Resize += new System.EventHandler(this.pictureBoxVideo_Resize);
 
             //
@@ -795,6 +810,7 @@ namespace ASLTv1.Forms
         private System.Windows.Forms.Button btnForward;
         private System.Windows.Forms.Label labelTimeInfo;
         private System.Windows.Forms.Label labelSubtitleTimestamp;
+        private System.Windows.Forms.Label labelLoading;
         private System.Windows.Forms.Button btnEntry;
         private System.Windows.Forms.Button btnExit;
         private System.Windows.Forms.Button btnToggleSubtitle;
