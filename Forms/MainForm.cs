@@ -307,7 +307,7 @@ namespace ASLTv1.Forms
                 }
 
                 UpdateTimeLabels();
-                labelTitle.Text = $"ANNA 합성데이터 라벨링 툴킷 (ASLT)v1.0 - {Path.GetFileName(filePath)}";
+                labelTitle.Text = $"ASLT(v1.0) - {Path.GetFileName(filePath)}";
 
                 this.Focus();
                 this.Activate();

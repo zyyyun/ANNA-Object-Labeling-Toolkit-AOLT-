@@ -107,12 +107,12 @@ namespace ASLTv1.Forms
             this.panelHeader.Controls.Add(this.btnMaximize);
             this.panelHeader.Controls.Add(this.btnClose);
 
-            // Title (USAB-06: 정식 제품명 표시)
-            this.labelTitle.Text = "ANNA 합성데이터 라벨링 툴킷 (ASLT)v1.0";
-            this.labelTitle.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            // Title (축약 표기 — 긴 제목이 버튼 가림 이슈로 단축)
+            this.labelTitle.Text = "ASLT(v1.0)";
+            this.labelTitle.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
             this.labelTitle.ForeColor = System.Drawing.Color.FromArgb(212, 212, 212);
             this.labelTitle.Location = new System.Drawing.Point(15, 12);
-            this.labelTitle.Size = new System.Drawing.Size(350, 25);
+            this.labelTitle.Size = new System.Drawing.Size(150, 25);
 
             // File Select Button
             this.btnSelectFolder.Text = "파일 선택";
